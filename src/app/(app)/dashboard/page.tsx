@@ -1,122 +1,215 @@
-import { requireAuth } from "@/lib/auth";
-import { getAllSites, getAllTransactions } from "@/lib/db";
+import { requireAuth, getProfile } from "@/lib/auth";
+import { getAllSites, getAllTransactions, getAllEquipment } from "@/lib/db";
 import Link from "next/link";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(amount);
 }
 
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("he-IL", { day: "numeric", month: "short" }).format(new Date(date));
+}
+
+function isExpired(dateStr: string) {
+  return new Date(dateStr).getTime() < Date.now();
+}
+
+function isExpiringSoon(dateStr: string, days = 30) {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  return diff > 0 && diff < days * 86400000;
+}
+
 export default async function DashboardPage() {
   await requireAuth();
+  const profile = await getProfile();
 
-  const [sites, allTransactions] = await Promise.all([
+  const [sites, allTransactions, equipment] = await Promise.all([
     getAllSites(),
     getAllTransactions(),
+    getAllEquipment(),
   ]);
 
   const totalIncome = allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
   const totalExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
   const activeSites = sites.filter(s => s.status === "ACTIVE").length;
-  const recentTransactions = allTransactions.slice(0, 10);
+  const recentTransactions = [...allTransactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 8);
+
+  const expiringInsurances = equipment.flatMap(eq =>
+    (eq.insurances || [])
+      .filter(i => isExpired(i.endDate) || isExpiringSoon(i.endDate))
+      .map(i => ({ ...i, equipmentName: eq.name }))
+  );
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-7xl">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">לוח בקרה</h1>
-        <p className="text-gray-500 text-sm mt-1">סיכום כללי של הפעילות</p>
+        <p className="text-amber-600 text-sm font-medium mb-1">
+          ברוך הבא{profile?.name ? `, ${profile.name}` : ""} 👋
+        </p>
+        <h1 className="text-3xl font-bold text-gray-900">לוח בקרה</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="יתרה כוללת" value={formatCurrency(totalBalance)} color={totalBalance >= 0 ? "text-green-600" : "text-red-600"} iconBg="bg-green-100" iconColor="text-green-600" icon="balance" />
-        <StatCard label="סה״כ הכנסות" value={formatCurrency(totalIncome)} color="text-blue-600" iconBg="bg-blue-100" iconColor="text-blue-600" icon="income" />
-        <StatCard label="סה״כ הוצאות" value={formatCurrency(totalExpense)} color="text-red-600" iconBg="bg-red-100" iconColor="text-red-600" icon="expense" />
-        <StatCard label="אתרים פעילים" value={`${activeSites} מתוך ${sites.length}`} color="text-amber-600" iconBg="bg-amber-100" iconColor="text-amber-600" icon="sites" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">אתרים פעילים</h2>
-            <Link href="/sites" className="text-amber-600 text-sm hover:underline">כל האתרים</Link>
+      {/* Alert bar */}
+      {expiringInsurances.length > 0 && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.924-.833-2.694 0L3.232 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
           </div>
-          {sites.filter(s => s.status === "ACTIVE").length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">אין אתרים פעילים</p>
-          ) : (
-            <div className="space-y-3">
-              {sites.filter(s => s.status === "ACTIVE").slice(0, 5).map(site => {
-                const income = (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-                const expense = (site.transactions || []).filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
-                return (
-                  <Link key={site.id} href={`/sites/${site.id}`} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-amber-50 transition-colors">
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{site.name}</p>
-                      {site.location && <p className="text-gray-400 text-xs">{site.location}</p>}
-                    </div>
-                    <p className={`text-sm font-semibold ${income - expense >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatCurrency(income - expense)}
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">{expiringInsurances.length} ביטוחים דורשים תשומת לב</p>
+            <p className="text-xs text-red-500 mt-0.5">{expiringInsurances.map(i => i.equipmentName).join(", ")}</p>
+          </div>
+          <Link href="/equipment" className="text-xs text-red-600 font-semibold hover:text-red-800 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors">
+            לציוד
+          </Link>
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white shadow-lg shadow-amber-200">
+          <p className="text-amber-100 text-xs font-medium mb-3">יתרה כוללת</p>
+          <p className="text-2xl font-bold leading-none">{formatCurrency(totalBalance)}</p>
+          <div className="mt-3 flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${totalBalance >= 0 ? "bg-green-300" : "bg-red-300"}`} />
+            <p className="text-amber-100 text-xs">{totalBalance >= 0 ? "רווח מצטבר" : "הפסד מצטבר"}</p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">תנועות אחרונות</h2>
-            <Link href="/transactions" className="text-amber-600 text-sm hover:underline">כל התנועות</Link>
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-400 font-medium">הכנסות</p>
           </div>
-          {recentTransactions.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">אין תנועות עדיין</p>
-          ) : (
-            <div className="space-y-3">
-              {recentTransactions.map(t => (
-                <div key={t.id} className="flex items-center justify-between">
+          <p className="text-xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-400 font-medium">הוצאות</p>
+          </div>
+          <p className="text-xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-400 font-medium">אתרים פעילים</p>
+          </div>
+          <p className="text-xl font-bold text-amber-600">{activeSites}</p>
+          <p className="text-xs text-gray-400 mt-0.5">מתוך {sites.length} סה"כ</p>
+        </div>
+      </div>
+
+      {/* Main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active sites */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+            <h2 className="font-bold text-gray-900">אתרים פעילים</h2>
+            <Link href="/sites" className="text-amber-500 text-xs font-semibold hover:text-amber-600 flex items-center gap-1">
+              כל האתרים
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+          </div>
+          <div className="p-3">
+            {sites.filter(s => s.status === "ACTIVE").length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-4xl mb-3">🏗️</p>
+                <p className="text-gray-400 text-sm">אין אתרים פעילים</p>
+                <Link href="/sites/new" className="mt-3 inline-block text-amber-500 text-xs font-medium hover:underline">הוסף אתר חדש ←</Link>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {sites.filter(s => s.status === "ACTIVE").slice(0, 5).map(site => {
+                  const income = (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+                  const expense = (site.transactions || []).filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+                  const balance = income - expense;
+                  return (
+                    <Link key={site.id} href={`/sites/${site.id}`}
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-amber-50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors">
+                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm">{site.name}</p>
+                          {site.location && <p className="text-gray-400 text-xs">{site.location}</p>}
+                        </div>
+                      </div>
+                      <p className={`text-sm font-bold ${balance >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {formatCurrency(balance)}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent transactions */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+            <h2 className="font-bold text-gray-900">תנועות אחרונות</h2>
+            <Link href="/transactions" className="text-amber-500 text-xs font-semibold hover:text-amber-600 flex items-center gap-1">
+              כל התנועות
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentTransactions.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-4xl mb-3">💸</p>
+                <p className="text-gray-400 text-sm">אין תנועות עדיין</p>
+              </div>
+            ) : (
+              recentTransactions.map(t => (
+                <div key={t.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${t.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}>
-                      <svg className={`w-4 h-4 ${t.type === "INCOME" ? "text-green-600" : "text-red-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={t.type === "INCOME" ? "M7 11l5-5m0 0l5 5m-5-5v12" : "M17 13l-5 5m0 0l-5-5m5 5V6"} />
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}>
+                      <svg className={`w-3.5 h-3.5 ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={t.type === "INCOME" ? "M7 11l5-5m0 0l5 5m-5-5v12" : "M17 13l-5 5m0 0l-5-5m5 5V6"} />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{t.description}</p>
-                      <p className="text-xs text-gray-400">{t.workSite?.name || ""}</p>
+                      <p className="text-sm font-medium text-gray-800">{t.description}</p>
+                      <p className="text-xs text-gray-400">{t.workSite?.name || ""} · {formatDate(t.date)}</p>
                     </div>
                   </div>
-                  <span className={`text-sm font-semibold ${t.type === "INCOME" ? "text-green-600" : "text-red-600"}`}>
+                  <span className={`text-sm font-bold ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`}>
                     {t.type === "INCOME" ? "+" : "-"}{formatCurrency(t.amount)}
                   </span>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, color, iconBg, iconColor, icon }: {
-  label: string; value: string; color: string; iconBg: string; iconColor: string; icon: string;
-}) {
-  const icons: Record<string, string> = {
-    balance: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    income: "M7 11l5-5m0 0l5 5m-5-5v12",
-    expense: "M17 13l-5 5m0 0l-5-5m5 5V6",
-    sites: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-  };
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-      <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-        <svg className={`w-5 h-5 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icons[icon]} />
-        </svg>
-      </div>
-      <div>
-        <p className="text-gray-500 text-xs mb-0.5">{label}</p>
-        <p className={`text-xl font-bold ${color}`}>{value}</p>
       </div>
     </div>
   );
