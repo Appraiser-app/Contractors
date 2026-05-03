@@ -1,0 +1,172 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+const categories = {
+  INCOME: ["תשלום לקוח", "מקדמה", "סיום שלב", "אחר"],
+  EXPENSE: ["ציוד", "דלק", "שכר עובדים", "חומרים", "שכירות", "ביטוח", "אחר"],
+};
+
+export default function AddTransactionForm({ siteId }: { siteId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    type: "INCOME",
+    amount: "",
+    description: "",
+    category: "",
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  function update(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const res = await fetch("/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        siteId,
+        amount: parseFloat(form.amount),
+      }),
+    });
+
+    if (res.ok) {
+      setForm({ type: "INCOME", amount: "", description: "", category: "", date: new Date().toISOString().split("T")[0] });
+      setOpen(false);
+      router.refresh();
+    } else {
+      const err = await res.json();
+      setError(err.error || "שגיאה");
+      setLoading(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 bg-white border border-dashed border-amber-300 hover:border-amber-500 text-amber-600 hover:text-amber-700 font-medium px-4 py-3 rounded-2xl w-full transition-colors text-sm"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        הוסף הכנסה / הוצאה
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-amber-200 p-5">
+      <h3 className="font-bold text-gray-900 mb-4">תנועה חדשה</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Type toggle */}
+        <div className="flex gap-2">
+          {["INCOME", "EXPENSE"].map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => update("type", t)}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                form.type === t
+                  ? t === "INCOME"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {t === "INCOME" ? "הכנסה" : "הוצאה"}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">סכום (₪) *</label>
+            <input
+              type="number"
+              value={form.amount}
+              onChange={(e) => update("amount", e.target.value)}
+              required
+              min="0.01"
+              step="0.01"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="1000"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => update("date", e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              dir="ltr"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">תיאור *</label>
+          <input
+            type="text"
+            value={form.description}
+            onChange={(e) => update("description", e.target.value)}
+            required
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            placeholder={form.type === "INCOME" ? "תשלום עבור שלב א'" : "קנייה מדלק"}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">קטגוריה</label>
+          <select
+            value={form.category}
+            onChange={(e) => update("category", e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+          >
+            <option value="">בחר קטגוריה</option>
+            {categories[form.type as "INCOME" | "EXPENSE"].map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {error && (
+          <p className="text-red-500 text-xs">{error}</p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className={`flex-1 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm ${
+              form.type === "INCOME"
+                ? "bg-green-500 hover:bg-green-400"
+                : "bg-red-500 hover:bg-red-400"
+            } disabled:bg-gray-200 disabled:cursor-not-allowed`}
+          >
+            {loading ? "שומר..." : "הוסף"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="px-4 border border-gray-200 text-gray-500 hover:bg-gray-50 rounded-xl text-sm transition-colors"
+          >
+            ביטול
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

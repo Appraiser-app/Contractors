@@ -6,3 +6,56 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  SECRETARY
+}
+
+enum SiteStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model Profile {
+  id        String   @id
+  email     String   @unique
+  name      String
+  role      Role     @default(SECRETARY)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkSite {
+  id            String        @id @default(cuid())
+  name          String
+  location      String?
+  description   String?
+  clientName    String?
+  contractValue Float?
+  status        SiteStatus    @default(ACTIVE)
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  transactions  Transaction[]
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  workSiteId  String
+  workSite    WorkSite        @relation(fields: [workSiteId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Float
+  description String
+  category    String?
+  date        DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
