@@ -1,0 +1,15 @@
+# Guard: deploy workflow must exist
+if [ ! -f ".github/workflows/deploy.yml" ]; then
+  echo ""
+  echo "ERROR: .github/workflows/deploy.yml is missing!"
+  echo "This file is required for automatic deployments to Vercel."
+  echo "Cannot push without it."
+  echo ""
+  exit 1
+fi
+
+# Intentionally no 'next build' here — Vercel builds on every push and
+# reports failures back to the dashboard. Running the build locally on
+# pre-push doubled the build cost and triggered loops when the agent
+# tried to fix a TS error via reinstall/reset and kept hitting the same
+# block before it could actually push.

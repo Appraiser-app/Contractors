@@ -1,0 +1,35 @@
+# Guard: deploy workflow must exist
+if [ ! -f ".github/workflows/deploy.yml" ]; then
+  echo ""
+  echo "ERROR: .github/workflows/deploy.yml is missing!"
+  echo "This file is required for automatic deployments to Vercel."
+  echo "Restore it before committing: git checkout HEAD -- .github/workflows/deploy.yml"
+  echo ""
+  exit 1
+fi
+
+# Guard: deploy workflow must not be staged for deletion
+if git diff --cached --name-only --diff-filter=D | grep -q "^.github/workflows/deploy.yml$"; then
+  echo ""
+  echo "ERROR: Cannot delete .github/workflows/deploy.yml"
+  echo "This file is required for automatic deployments to Vercel."
+  echo "Unstage it: git reset HEAD .github/workflows/deploy.yml"
+  echo ""
+  exit 1
+fi
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' || true)
+if [ -n "$STAGED_FILES" ]; then
+  echo "Pre-commit: linting staged files..."
+  echo "$STAGED_FILES" | xargs npx @biomejs/biome check --no-errors-on-unmatched
+  if [ $? -ne 0 ]; then
+    echo "Lint errors found. Fix them before committing."
+    exit 1
+  fi
+fi
+
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "TypeScript errors found. Fix them before committing."
+  exit 1
+fi

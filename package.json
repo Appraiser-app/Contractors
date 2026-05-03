@@ -1,0 +1,31 @@
+{
+  "name": "contractors",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "prisma generate && sh -c '[ \"$VERCEL_ENV\" = \"production\" ] && prisma db push --accept-data-loss --skip-generate || true' && next build",
+    "start": "next start",
+    "lint": "npx @biomejs/biome check ./src",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "next": "16.2.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@prisma/client": "^6.19.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "@biomejs/biome": "^1",
+    "prisma": "^6.19.0",
+    "husky": "^9"
+  }
+}
