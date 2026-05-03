@@ -39,6 +39,7 @@ model WorkSite {
   location      String?
   description   String?
   clientName    String?
+  clientPhone   String?
   contractValue Float?
   status        SiteStatus    @default(ACTIVE)
   startDate     DateTime?
@@ -165,6 +166,17 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  to        String
+  toName    String?
+  body      String
+  status    String   @default("sent")
+  siteId    String?
+  sentBy    String?
+  createdAt DateTime @default(now())
 }
 
 model Task {

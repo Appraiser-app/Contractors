@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, location, description, clientName, contractValue, status, startDate, endDate } = body;
+  const { name, location, description, clientName, clientPhone, contractValue, status, startDate, endDate } = body;
 
   if (!name) return NextResponse.json({ error: "שם האתר חובה" }, { status: 400 });
 
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       location: location || null,
       description: description || null,
       clientName: clientName || null,
+      clientPhone: clientPhone || null,
       contractValue: contractValue || null,
       status: status || "ACTIVE",
       startDate: startDate || null,

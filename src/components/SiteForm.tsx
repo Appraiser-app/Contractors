@@ -9,6 +9,7 @@ type Site = {
   location: string | null;
   description: string | null;
   clientName: string | null;
+  clientPhone: string | null;
   contractValue: number | null;
   status: string;
   startDate: Date | null;
@@ -25,6 +26,7 @@ export default function SiteForm({ site }: { site?: Site }) {
     location: site?.location || "",
     description: site?.description || "",
     clientName: site?.clientName || "",
+    clientPhone: site?.clientPhone || "",
     contractValue: site?.contractValue?.toString() || "",
     status: site?.status || "ACTIVE",
     startDate: site?.startDate ? new Date(site.startDate).toISOString().split("T")[0] : "",
@@ -97,6 +99,17 @@ export default function SiteForm({ site }: { site?: Site }) {
               onChange={(e) => update("clientName", e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
               placeholder="חברת בנייה בע״מ"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">טלפון לקוח (WhatsApp)</label>
+            <input
+              type="tel"
+              value={form.clientPhone}
+              onChange={(e) => update("clientPhone", e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              placeholder="0501234567"
+              dir="ltr"
             />
           </div>
           <div>

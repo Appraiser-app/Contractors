@@ -178,6 +178,18 @@ export async function deleteDocument(id: string) {
   if (error) throw error;
 }
 
+// --- WhatsApp Messages ---
+export async function getAllWhatsAppMessages() {
+  const { data } = await db.from("WhatsAppMessage").select("*").order("createdAt", { ascending: false });
+  return (data || []) as WhatsAppMessage[];
+}
+
+export async function saveWhatsAppMessage(msg: Omit<WhatsAppMessage, "id" | "createdAt">) {
+  const { data, error } = await db.from("WhatsAppMessage").insert({ ...msg, createdAt: new Date().toISOString() }).select().single();
+  if (error) throw error;
+  return data as WhatsAppMessage;
+}
+
 // --- Tasks ---
 export async function getAllTasks() {
   const { data } = await db.from("Task").select("*").order("createdAt", { ascending: false });
@@ -208,7 +220,7 @@ export type Profile = {
 
 export type WorkSite = {
   id: string; name: string; location: string | null; description: string | null;
-  clientName: string | null; contractValue: number | null;
+  clientName: string | null; clientPhone: string | null; contractValue: number | null;
   status: "ACTIVE" | "COMPLETED" | "ON_HOLD";
   startDate: string | null; endDate: string | null;
   createdAt: string; updatedAt: string;
@@ -260,6 +272,17 @@ export type Document = {
   equipmentId: string | null;
   createdAt: string; updatedAt: string;
   equipment?: Partial<Equipment> | null;
+};
+
+export type WhatsAppMessage = {
+  id: string;
+  to: string;
+  toName: string | null;
+  body: string;
+  status: string;
+  siteId: string | null;
+  sentBy: string | null;
+  createdAt: string;
 };
 
 export type Task = {
