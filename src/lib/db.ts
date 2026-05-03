@@ -196,6 +196,7 @@ export type WorkSite = {
 export type Transaction = {
   id: string; workSiteId: string; type: "INCOME" | "EXPENSE";
   amount: number; description: string; category: string | null; date: string;
+  receiptUrl: string | null;
   createdAt: string; updatedAt: string; workSite?: Partial<WorkSite>;
 };
 
@@ -226,6 +227,7 @@ export type Insurance = {
 export type EquipmentExpense = {
   id: string; equipmentId: string; category: string;
   amount: number; description: string; date: string;
+  receiptUrl: string | null;
   createdAt: string; updatedAt: string;
 };
 

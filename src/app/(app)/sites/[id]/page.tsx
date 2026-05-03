@@ -97,6 +97,10 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
                     <div className="flex gap-2 mt-0.5">
                       {t.category && <span className="text-xs text-gray-400">{t.category}</span>}
                       <span className="text-xs text-gray-400">{formatDate(t.date)}</span>
+                      {t.receiptUrl && (
+                        <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:text-blue-600">📎 קבלה</a>
+                      )}
                     </div>
                   </div>
                 </div>
