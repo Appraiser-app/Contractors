@@ -194,7 +194,7 @@ export default function WhatsAppPage() {
                         key={t.label}
                         type="button"
                         onClick={() => { setBody(t.text); setShowTemplates(false); }}
-                        className="text-[11px] text-right bg-gray-50 hover:bg-green-50 border border-gray-200 hover:border-green-200 px-2.5 py-1.5 rounded-lg text-gray-600 transition-colors"
+                        className="text-[11px] text-right bg-gray-50 hover:bg-green-50 border border-gray-200 hover:border-green-300 px-2.5 py-1.5 rounded-lg text-gray-600 transition-colors"
                       >
                         {t.label}
                       </button>

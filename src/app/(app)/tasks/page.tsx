@@ -8,7 +8,7 @@ const PRIORITY_LABEL: Record<string, string> = { LOW: "נמוכה", MEDIUM: "ב�
 const PRIORITY_COLOR: Record<string, string> = {
   LOW: "bg-gray-100 text-gray-500",
   MEDIUM: "bg-blue-100 text-blue-600",
-  HIGH: "bg-orange-100 text-orange-600",
+  HIGH: "bg-green-100 text-green-600",
   URGENT: "bg-red-100 text-red-600",
 };
 
@@ -170,7 +170,7 @@ export default function TasksPage() {
           )}
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shadow-md shadow-amber-200"
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shadow-md shadow-green-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -208,7 +208,7 @@ export default function TasksPage() {
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="מה צריך לעשות?"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
                 />
               </div>
@@ -219,7 +219,7 @@ export default function TasksPage() {
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="פרטים נוספים..."
                   rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -228,7 +228,7 @@ export default function TasksPage() {
                   <select
                     value={form.priority}
                     onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="LOW">נמוכה</option>
                     <option value="MEDIUM">בינונית</option>
@@ -242,7 +242,7 @@ export default function TasksPage() {
                     type="date"
                     value={form.dueDate}
                     onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function TasksPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+                  className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
                 >
                   {submitting ? "שומר..." : "הוסף משימה"}
                 </button>
@@ -277,7 +277,7 @@ export default function TasksPage() {
           <p className="text-gray-400 text-sm mt-1 mb-5">הוסף את המשימה הראשונה שלך</p>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -341,7 +341,7 @@ export default function TasksPage() {
                         {col.key !== "DONE" && (
                           <button
                             onClick={() => moveTask(task.id, col.key === "TODO" ? "IN_PROGRESS" : "DONE")}
-                            className="text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 py-1 rounded-lg transition-colors"
+                            className="text-[10px] text-green-600 hover:text-green-700 hover:bg-green-50 px-2 py-1 rounded-lg transition-colors"
                           >
                             {col.key === "TODO" ? "התחל" : "סיים"} →
                           </button>

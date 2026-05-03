@@ -114,7 +114,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-stone-800/60">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-900/30">
+          <div className="w-9 h-9 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-900/30">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -136,7 +136,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-amber-500 text-white shadow-md shadow-amber-900/30"
+                  ? "bg-green-600 text-white shadow-md shadow-green-900/30"
                   : "text-stone-400 hover:text-white hover:bg-stone-800/70"
               }`}
             >
@@ -159,7 +159,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-amber-500 text-white shadow-md shadow-amber-900/30"
+                      ? "bg-green-600 text-white shadow-md shadow-green-900/30"
                       : "text-stone-400 hover:text-white hover:bg-stone-800/70"
                   }`}
                 >
@@ -175,7 +175,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
       {/* User info + logout */}
       <div className="px-3 py-4 border-t border-stone-800/60">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-stone-800/70 transition-colors mb-1">
-          <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white text-xs font-bold">
               {profile?.name?.charAt(0)?.toUpperCase() || "?"}
             </span>

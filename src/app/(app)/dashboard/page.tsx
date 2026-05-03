@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     <div className="p-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <p className="text-amber-600 text-sm font-medium mb-1">
+        <p className="text-green-600 text-sm font-medium mb-1">
           ברוך הבא{profile?.name ? `, ${profile.name}` : ""} 👋
         </p>
         <h1 className="text-3xl font-bold text-gray-900">לוח בקרה</h1>
@@ -73,12 +73,12 @@ export default async function DashboardPage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white shadow-lg shadow-amber-200">
-          <p className="text-amber-100 text-xs font-medium mb-3">יתרה כוללת</p>
+        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-5 text-white shadow-lg shadow-green-200">
+          <p className="text-green-100 text-xs font-medium mb-3">יתרה כוללת</p>
           <p className="text-2xl font-bold leading-none">{formatCurrency(totalBalance)}</p>
           <div className="mt-3 flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${totalBalance >= 0 ? "bg-green-300" : "bg-red-300"}`} />
-            <p className="text-amber-100 text-xs">{totalBalance >= 0 ? "רווח מצטבר" : "הפסד מצטבר"}</p>
+            <p className="text-green-100 text-xs">{totalBalance >= 0 ? "רווח מצטבר" : "הפסד מצטבר"}</p>
           </div>
         </div>
 
@@ -108,14 +108,14 @@ export default async function DashboardPage() {
 
         <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
-              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
             <p className="text-xs text-gray-400 font-medium">אתרים פעילים</p>
           </div>
-          <p className="text-xl font-bold text-amber-600">{activeSites}</p>
+          <p className="text-xl font-bold text-green-600">{activeSites}</p>
           <p className="text-xs text-gray-400 mt-0.5">מתוך {sites.length} סה"כ</p>
         </div>
       </div>
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
             <h2 className="font-bold text-gray-900">אתרים פעילים</h2>
-            <Link href="/sites" className="text-amber-500 text-xs font-semibold hover:text-amber-600 flex items-center gap-1">
+            <Link href="/sites" className="text-green-600 text-xs font-semibold hover:text-green-600 flex items-center gap-1">
               כל האתרים
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
               <div className="text-center py-10">
                 <p className="text-4xl mb-3">🏗️</p>
                 <p className="text-gray-400 text-sm">אין אתרים פעילים</p>
-                <Link href="/sites/new" className="mt-3 inline-block text-amber-500 text-xs font-medium hover:underline">הוסף אתר חדש ←</Link>
+                <Link href="/sites/new" className="mt-3 inline-block text-green-600 text-xs font-medium hover:underline">הוסף אתר חדש ←</Link>
               </div>
             ) : (
               <div className="space-y-1">
@@ -148,10 +148,10 @@ export default async function DashboardPage() {
                   const balance = income - expense;
                   return (
                     <Link key={site.id} href={`/sites/${site.id}`}
-                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-amber-50 transition-colors group">
+                      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-green-50 transition-colors group">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors">
-                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-9 h-9 bg-green-100 group-hover:bg-green-200 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
                         </div>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
             <h2 className="font-bold text-gray-900">תנועות אחרונות</h2>
-            <Link href="/transactions" className="text-amber-500 text-xs font-semibold hover:text-amber-600 flex items-center gap-1">
+            <Link href="/transactions" className="text-green-600 text-xs font-semibold hover:text-green-600 flex items-center gap-1">
               כל התנועות
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

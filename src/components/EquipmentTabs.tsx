@@ -56,43 +56,43 @@ function MaintenanceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin:
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">רשומות תחזוקה ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           הוסף טיפול
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4 space-y-3">
+        <form onSubmit={handleAdd} className="bg-green-50 border border-green-100 rounded-xl p-4 mb-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">תיאור הטיפול *</label>
               <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="החלפת שמן + פילטר" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="החלפת שמן + פילטר" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
               <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" dir="ltr" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">עלות (₪)</label>
               <input type="number" value={form.cost} onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} min="0"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="500" dir="ltr" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">קילומטראז'</label>
               <input type="number" value={form.mileage} onChange={e => setForm(p => ({ ...p, mileage: e.target.value }))} min="0"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="120000" dir="ltr" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="120000" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
               <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="פרטים נוספים..." />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="פרטים נוספים..." />
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={loading} className="bg-amber-500 hover:bg-amber-400 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
+            <button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
             <button type="button" onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
           </div>
         </form>
@@ -160,7 +160,7 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">ביטוחים ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           הוסף ביטוח
         </button>
@@ -304,7 +304,7 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
           <h3 className="font-semibold text-gray-800">הוצאות ({records.length})</h3>
           {records.length > 0 && <p className="text-xs text-red-500 mt-0.5">סה"כ: {formatCurrency(total)}</p>}
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           הוסף הוצאה
         </button>
@@ -442,7 +442,7 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">מסמכים ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           הוסף מסמך
         </button>
@@ -532,7 +532,7 @@ export default function EquipmentTabs({ equipment, isAdmin }: { equipment: Equip
       <div className="flex border-b border-gray-100">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.id ? "text-amber-600 border-b-2 border-amber-500" : "text-gray-400 hover:text-gray-600"}`}>
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.id ? "text-green-600 border-b-2 border-green-600" : "text-gray-400 hover:text-gray-600"}`}>
             {tab.label}
           </button>
         ))}

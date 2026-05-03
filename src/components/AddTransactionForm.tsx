@@ -70,7 +70,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 bg-white border border-dashed border-amber-300 hover:border-amber-500 text-amber-600 hover:text-amber-700 font-medium px-4 py-3 rounded-2xl w-full transition-colors text-sm"
+        className="flex items-center gap-2 bg-white border border-dashed border-green-300 hover:border-green-500 text-green-600 hover:text-green-700 font-medium px-4 py-3 rounded-2xl w-full transition-colors text-sm"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -81,7 +81,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-amber-200 p-5">
+    <div className="bg-white rounded-2xl border border-green-200 p-5">
       <h3 className="font-bold text-gray-900 mb-4">תנועה חדשה</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Type toggle */}
@@ -103,13 +103,13 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
             <label className="block text-xs font-medium text-gray-600 mb-1">סכום (₪) *</label>
             <input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)}
               required min="0.01" step="0.01"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
               placeholder="1000" dir="ltr" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
             <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
               dir="ltr" />
           </div>
         </div>
@@ -117,14 +117,14 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">תיאור *</label>
           <input type="text" value={form.description} onChange={(e) => update("description", e.target.value)} required
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
             placeholder={form.type === "INCOME" ? "תשלום עבור שלב א'" : "קנייה מדלק"} />
         </div>
 
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">קטגוריה</label>
           <select value={form.category} onChange={(e) => update("category", e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
             <option value="">בחר קטגוריה</option>
             {categories[form.type as "INCOME" | "EXPENSE"].map((c) => (
               <option key={c} value={c}>{c}</option>

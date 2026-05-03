@@ -80,7 +80,7 @@ export default async function TransactionsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {transactions.map(t => (
-                <tr key={t.id} className="hover:bg-amber-50/30 transition-colors">
+                <tr key={t.id} className="hover:bg-green-50/30 transition-colors">
                   <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{formatDate(t.date)}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2.5">
@@ -99,7 +99,7 @@ export default async function TransactionsPage() {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <Link href={`/sites/${t.workSiteId}`} className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline">{t.workSite?.name || ""}</Link>
+                    <Link href={`/sites/${t.workSiteId}`} className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">{t.workSite?.name || ""}</Link>
                   </td>
                   <td className="px-5 py-4">
                     {t.category ? (

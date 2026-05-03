@@ -108,17 +108,17 @@ export default function ReportsPage() {
       <div className="flex flex-wrap gap-2 mb-6">
         {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
           <button key={p} onClick={() => setPeriod(p)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${period === p ? "bg-amber-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-amber-300"}`}>
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${period === p ? "bg-green-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-green-300"}`}>
             {PERIOD_LABELS[p]}
           </button>
         ))}
         {period === "custom" && (
           <div className="flex items-center gap-2 mr-2">
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" dir="ltr" />
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" dir="ltr" />
             <span className="text-gray-400 text-sm">עד</span>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" dir="ltr" />
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" dir="ltr" />
           </div>
         )}
       </div>
@@ -139,7 +139,7 @@ export default function ReportsPage() {
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <p className="text-xs text-gray-400 mb-1">עלויות ציוד</p>
-              <p className="text-xl font-bold text-orange-500">{formatCurrency(data.summary.equipmentExpenseTotal + data.summary.maintenanceTotal + data.summary.insuranceTotal)}</p>
+              <p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.equipmentExpenseTotal + data.summary.maintenanceTotal + data.summary.insuranceTotal)}</p>
               <div className="text-xs text-gray-400 mt-1 space-y-0.5">
                 <div>דלק/הוצאות: {formatCurrency(data.summary.equipmentExpenseTotal)}</div>
                 <div>טיפולים: {formatCurrency(data.summary.maintenanceTotal)}</div>
@@ -183,7 +183,7 @@ export default function ReportsPage() {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-600">{cat}</span>
                       </div>
-                      <Bar value={amt} max={maxCat} color="bg-orange-400" />
+                      <Bar value={amt} max={maxCat} color="bg-green-500" />
                     </div>
                   ))}
                 </div>

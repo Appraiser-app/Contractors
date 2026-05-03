@@ -8,7 +8,7 @@ const docTypeLabel: Record<string, string> = {
 const docTypeColor: Record<string, string> = {
   LICENSE: "bg-blue-100 text-blue-700", INSURANCE: "bg-green-100 text-green-700",
   PERMIT: "bg-purple-100 text-purple-700", CONTRACT: "bg-indigo-100 text-indigo-700",
-  RECEIPT: "bg-orange-100 text-orange-700", OTHER: "bg-gray-100 text-gray-600",
+  RECEIPT: "bg-green-100 text-green-700", OTHER: "bg-gray-100 text-gray-600",
 };
 
 function isExpired(dateStr: string | null) {
@@ -78,7 +78,7 @@ export default async function DocumentsPage() {
       {documents.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
           <p className="text-gray-400 text-sm">אין מסמכים עדיין. הוסף מסמכים דרך עמוד הציוד.</p>
-          <Link href="/equipment" className="mt-4 inline-block text-amber-500 hover:text-amber-600 text-sm font-medium">
+          <Link href="/equipment" className="mt-4 inline-block text-green-600 hover:text-green-600 text-sm font-medium">
             עבור לניהול ציוד
           </Link>
         </div>
@@ -109,7 +109,7 @@ export default async function DocumentsPage() {
                     </td>
                     <td className="px-5 py-3">
                       {doc.equipment ? (
-                        <Link href={`/equipment/${doc.equipment.id}`} className="flex items-center gap-1.5 text-sm text-gray-700 hover:text-amber-600">
+                        <Link href={`/equipment/${doc.equipment.id}`} className="flex items-center gap-1.5 text-sm text-gray-700 hover:text-green-600">
                           <span>{typeIcon[doc.equipment.type || "OTHER"]}</span>
                           {doc.equipment.name}
                         </Link>

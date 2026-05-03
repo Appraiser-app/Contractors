@@ -52,13 +52,13 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">שם הכלי *</label>
             <input type="text" value={form.name} onChange={e => update("name", e.target.value)} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
               placeholder="משאית מן 18 טון" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">סוג</label>
             <select value={form.type} onChange={e => update("type", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
               <option value="TRUCK">🚛 משאית</option>
               <option value="MINI_EXCAVATOR">🏗️ מיני מחפרון</option>
               <option value="BOBCAT">🟡 בובקט</option>
@@ -68,19 +68,19 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">מספר רישוי</label>
             <input type="text" value={form.licensePlate} onChange={e => update("licensePlate", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
               placeholder="12-345-67" dir="ltr" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">שנת ייצור</label>
             <input type="number" value={form.year} onChange={e => update("year", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
               placeholder="2018" min="1980" max={new Date().getFullYear()} dir="ltr" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">סטטוס</label>
             <select value={form.status} onChange={e => update("status", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
               <option value="ACTIVE">פעיל</option>
               <option value="IN_REPAIR">בתיקון</option>
               <option value="INACTIVE">לא פעיל</option>
@@ -90,7 +90,7 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">תיאור</label>
           <textarea value={form.description} onChange={e => update("description", e.target.value)} rows={2}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-600"
             placeholder="פרטים נוספים על הכלי..." />
         </div>
 
@@ -98,7 +98,7 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
 
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading}
-            className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+            className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
             {loading ? "שומר..." : equipment ? "עדכון כלי" : "הוספת כלי"}
           </button>
           <button type="button" onClick={() => router.back()}

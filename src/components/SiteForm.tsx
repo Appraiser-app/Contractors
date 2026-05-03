@@ -77,7 +77,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               placeholder="פרויקט כביש 1"
             />
           </div>
@@ -87,7 +87,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="text"
               value={form.location}
               onChange={(e) => update("location", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               placeholder="תל אביב"
             />
           </div>
@@ -97,7 +97,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="text"
               value={form.clientName}
               onChange={(e) => update("clientName", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               placeholder="חברת בנייה בע״מ"
             />
           </div>
@@ -107,7 +107,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="tel"
               value={form.clientPhone}
               onChange={(e) => update("clientPhone", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               placeholder="0501234567"
               dir="ltr"
             />
@@ -118,7 +118,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="number"
               value={form.contractValue}
               onChange={(e) => update("contractValue", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               placeholder="500000"
               min="0"
               dir="ltr"
@@ -130,7 +130,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="date"
               value={form.startDate}
               onChange={(e) => update("startDate", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               dir="ltr"
             />
           </div>
@@ -140,7 +140,7 @@ export default function SiteForm({ site }: { site?: Site }) {
               type="date"
               value={form.endDate}
               onChange={(e) => update("endDate", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
               dir="ltr"
             />
           </div>
@@ -151,7 +151,7 @@ export default function SiteForm({ site }: { site?: Site }) {
           <select
             value={form.status}
             onChange={(e) => update("status", e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm bg-white"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm bg-white"
           >
             <option value="ACTIVE">פעיל</option>
             <option value="COMPLETED">הושלם</option>
@@ -165,7 +165,7 @@ export default function SiteForm({ site }: { site?: Site }) {
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
             rows={3}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm resize-none"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm resize-none"
             placeholder="תיאור הפרויקט..."
           />
         </div>
@@ -180,7 +180,7 @@ export default function SiteForm({ site }: { site?: Site }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
           >
             {loading ? "שומר..." : site ? "עדכון אתר" : "הוספת אתר"}
           </button>

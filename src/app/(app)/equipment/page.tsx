@@ -13,7 +13,7 @@ const statusLabel: Record<string, string> = {
 };
 const statusColor: Record<string, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700",
-  IN_REPAIR: "bg-orange-100 text-orange-700",
+  IN_REPAIR: "bg-green-100 text-green-700",
   INACTIVE: "bg-gray-100 text-gray-500",
 };
 
@@ -44,7 +44,7 @@ export default async function EquipmentPage() {
           <p className="text-gray-400 text-sm mt-1">{equipment.length} כלים בסך הכל</p>
         </div>
         <Link href="/equipment/new"
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shadow-md shadow-amber-200">
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shadow-md shadow-green-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
@@ -58,7 +58,7 @@ export default async function EquipmentPage() {
           <p className="text-gray-500 font-medium">אין ציוד עדיין</p>
           <p className="text-gray-400 text-sm mt-1 mb-5">הוסף את הכלי הראשון שלך</p>
           <Link href="/equipment/new"
-            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
+            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
@@ -78,15 +78,15 @@ export default async function EquipmentPage() {
 
             return (
               <Link key={eq.id} href={`/equipment/${eq.id}`}
-                className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-50 transition-all group">
+                className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-green-200 hover:shadow-lg hover:shadow-green-50 transition-all group">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-stone-100 group-hover:bg-amber-50 rounded-2xl flex items-center justify-center text-2xl transition-colors flex-shrink-0">
+                    <div className="w-12 h-12 bg-stone-100 group-hover:bg-green-50 rounded-2xl flex items-center justify-center text-2xl transition-colors flex-shrink-0">
                       {typeIcon[eq.type]}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-amber-700 transition-colors">{eq.name}</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{eq.name}</h3>
                       <p className="text-gray-400 text-xs mt-0.5">{typeLabel[eq.type]}</p>
                     </div>
                   </div>

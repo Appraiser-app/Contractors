@@ -11,7 +11,7 @@ const statusLabel: Record<string, string> = {
   ACTIVE: "פעיל", IN_REPAIR: "בתיקון", INACTIVE: "לא פעיל",
 };
 const statusColor: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-700", IN_REPAIR: "bg-orange-100 text-orange-700", INACTIVE: "bg-gray-100 text-gray-500",
+  ACTIVE: "bg-green-100 text-green-700", IN_REPAIR: "bg-green-100 text-green-700", INACTIVE: "bg-gray-100 text-gray-500",
 };
 
 function formatCurrency(amount: number) {
