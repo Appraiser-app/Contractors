@@ -29,6 +29,16 @@ export async function updateProfileRole(id: string, role: "ADMIN" | "SECRETARY")
   if (error) throw error;
 }
 
+export async function saveGoogleRefreshToken(id: string, token: string) {
+  const { error } = await db.from("Profile").update({ googleRefreshToken: token, updatedAt: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function clearGoogleRefreshToken(id: string) {
+  const { error } = await db.from("Profile").update({ googleRefreshToken: null, updatedAt: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+
 export async function deleteProfile(id: string) {
   const { error } = await db.from("Profile").delete().eq("id", id);
   if (error) throw error;
@@ -215,6 +225,7 @@ export async function deleteTask(id: string) {
 // --- Types ---
 export type Profile = {
   id: string; email: string; name: string; role: "ADMIN" | "SECRETARY";
+  googleRefreshToken: string | null;
   createdAt: string; updatedAt: string;
 };
 

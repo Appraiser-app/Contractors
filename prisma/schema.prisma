@@ -25,12 +25,13 @@ enum TransactionType {
 }
 
 model Profile {
-  id        String   @id
-  email     String   @unique
-  name      String
-  role      Role     @default(SECRETARY)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id
+  email               String   @unique
+  name                String
+  role                Role     @default(SECRETARY)
+  googleRefreshToken  String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model WorkSite {
