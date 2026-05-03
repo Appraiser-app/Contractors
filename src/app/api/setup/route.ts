@@ -51,7 +51,8 @@ export async function POST(req: Request) {
         await createProfile({ id: data.user.id, email, name, role: "ADMIN" });
         created.push(email);
       } catch (e) {
-        errors.push({ email, error: String(e) });
+        const errMsg = e instanceof Error ? e.message : JSON.stringify(e);
+        errors.push({ email, error: errMsg });
       }
     }
 
