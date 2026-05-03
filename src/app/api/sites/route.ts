@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { createSite } from "@/lib/db";
 import { getUser } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -11,18 +11,20 @@ export async function POST(req: Request) {
 
   if (!name) return NextResponse.json({ error: "שם האתר חובה" }, { status: 400 });
 
-  const site = await prisma.workSite.create({
-    data: {
+  try {
+    const site = await createSite({
+      id: crypto.randomUUID(),
       name,
       location: location || null,
       description: description || null,
       clientName: clientName || null,
       contractValue: contractValue || null,
       status: status || "ACTIVE",
-      startDate: startDate ? new Date(startDate) : null,
-      endDate: endDate ? new Date(endDate) : null,
-    },
-  });
-
-  return NextResponse.json(site);
+      startDate: startDate || null,
+      endDate: endDate || null,
+    });
+    return NextResponse.json(site);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

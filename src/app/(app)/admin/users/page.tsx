@@ -1,10 +1,10 @@
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAllProfiles } from "@/lib/db";
 import UserManagement from "@/components/UserManagement";
 
 export default async function UsersPage() {
   await requireAdmin();
-  const users = await prisma.profile.findMany({ orderBy: { createdAt: "asc" } });
+  const users = await getAllProfiles();
 
   return (
     <div className="p-8">

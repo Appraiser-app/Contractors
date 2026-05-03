@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { updateProfileRole, deleteProfile } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 
@@ -14,19 +14,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const profile = await getProfile();
-  if (!profile || profile.role !== "ADMIN") {
-    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
-  }
+  if (!profile || profile.role !== "ADMIN") return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
   const { id } = await params;
   const { role } = await req.json();
 
-  await prisma.profile.update({
-    where: { id },
-    data: { role: role === "ADMIN" ? "ADMIN" : "SECRETARY" },
-  });
-
-  return NextResponse.json({ ok: true });
+  try {
+    await updateProfileRole(id, role === "ADMIN" ? "ADMIN" : "SECRETARY");
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -34,17 +32,15 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const profile = await getProfile();
-  if (!profile || profile.role !== "ADMIN") {
-    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
-  }
+  if (!profile || profile.role !== "ADMIN") return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
   const { id } = await params;
-
-  // Delete from Supabase auth
   await supabaseAdmin.auth.admin.deleteUser(id);
 
-  // Delete profile
-  await prisma.profile.delete({ where: { id } });
-
-  return NextResponse.json({ ok: true });
+  try {
+    await deleteProfile(id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

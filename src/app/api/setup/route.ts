@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { countAdmins, createProfile } from "@/lib/db";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     let existingAdmins = 0;
     try {
-      existingAdmins = await prisma.profile.count({ where: { role: "ADMIN" } });
+      existingAdmins = await countAdmins();
     } catch (dbErr) {
       return NextResponse.json({ error: "DB error", detail: String(dbErr) }, { status: 500 });
     }
@@ -44,13 +44,11 @@ export async function POST(req: Request) {
           email_confirm: true,
         });
         if (error || !data.user) {
-          errors.push({ email, error: error?.message || "no user returned" });
+          errors.push({ email, error: error?.message || "no user" });
           continue;
         }
 
-        await prisma.profile.create({
-          data: { id: data.user.id, email, name, role: "ADMIN" },
-        });
+        await createProfile({ id: data.user.id, email, name, role: "ADMIN" });
         created.push(email);
       } catch (e) {
         errors.push({ email, error: String(e) });

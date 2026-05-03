@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { getProfileById } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export async function getUser() {
@@ -11,8 +11,7 @@ export async function getUser() {
 export async function getProfile() {
   const user = await getUser();
   if (!user) return null;
-  const profile = await prisma.profile.findUnique({ where: { id: user.id } });
-  return profile;
+  return getProfileById(user.id);
 }
 
 export async function requireAuth() {

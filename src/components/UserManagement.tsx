@@ -8,7 +8,7 @@ type User = {
   email: string;
   name: string;
   role: string;
-  createdAt: Date;
+  createdAt: Date | string;
 };
 
 const roleLabels: Record<string, string> = {
