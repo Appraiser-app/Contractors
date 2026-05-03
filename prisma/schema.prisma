@@ -60,3 +60,94 @@ model Transaction {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
+
+enum EquipmentType {
+  TRUCK
+  MINI_EXCAVATOR
+  BOBCAT
+  OTHER
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  IN_REPAIR
+  INACTIVE
+}
+
+enum DocumentType {
+  LICENSE
+  INSURANCE
+  PERMIT
+  CONTRACT
+  RECEIPT
+  OTHER
+}
+
+model Equipment {
+  id           String             @id @default(cuid())
+  name         String
+  type         EquipmentType
+  licensePlate String?
+  year         Int?
+  description  String?
+  status       EquipmentStatus    @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  maintenance  MaintenanceRecord[]
+  insurances   Insurance[]
+  expenses     EquipmentExpense[]
+  documents    Document[]
+}
+
+model MaintenanceRecord {
+  id          String    @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  description String
+  cost        Float?
+  date        DateTime  @default(now())
+  mileage     Int?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Insurance {
+  id           String    @id @default(cuid())
+  equipmentId  String
+  equipment    Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  type         String
+  company      String?
+  policyNumber String?
+  startDate    DateTime
+  endDate      DateTime
+  cost         Float
+  isPaid       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model EquipmentExpense {
+  id          String    @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  category    String
+  amount      Float
+  description String
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  title       String
+  type        DocumentType
+  fileUrl     String?
+  expiryDate  DateTime?
+  notes       String?
+  equipmentId String?
+  equipment   Equipment?   @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
