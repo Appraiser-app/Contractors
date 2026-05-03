@@ -178,6 +178,28 @@ export async function deleteDocument(id: string) {
   if (error) throw error;
 }
 
+// --- Tasks ---
+export async function getAllTasks() {
+  const { data } = await db.from("Task").select("*").order("createdAt", { ascending: false });
+  return (data || []) as Task[];
+}
+
+export async function createTask(task: Partial<Task>) {
+  const { data, error } = await db.from("Task").insert({ ...task, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
+  if (error) throw error;
+  return data as Task;
+}
+
+export async function updateTask(id: string, updates: Partial<Task>) {
+  const { error } = await db.from("Task").update({ ...updates, updatedAt: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteTask(id: string) {
+  const { error } = await db.from("Task").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // --- Types ---
 export type Profile = {
   id: string; email: string; name: string; role: "ADMIN" | "SECRETARY";
@@ -238,4 +260,18 @@ export type Document = {
   equipmentId: string | null;
   createdAt: string; updatedAt: string;
   equipment?: Partial<Equipment> | null;
+};
+
+export type Task = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "TODO" | "IN_PROGRESS" | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  dueDate: string | null;
+  assignedTo: string | null;
+  siteId: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
