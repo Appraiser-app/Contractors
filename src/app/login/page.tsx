@@ -25,15 +25,17 @@ export default function LoginPage() {
     getRedirectResult(auth)
       .then(async (result) => {
         if (!result) { setGoogleLoading(false); return; }
-        const isNew = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
-        if (isNew) {
-          await fetch("/api/auth/signup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: result.user.displayName || result.user.email, email: result.user.email, password: crypto.randomUUID() }),
-          });
-        }
         const idToken = await result.user.getIdToken();
+        // Ensure Firestore profile exists (works for both new and existing Google users)
+        await fetch("/api/auth/google-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            idToken,
+            name: result.user.displayName || result.user.email,
+            email: result.user.email,
+          }),
+        });
         const ok = await createSession(idToken);
         if (ok) router.push("/dashboard");
         else { setError("שגיאה בכניסה"); setGoogleLoading(false); }
