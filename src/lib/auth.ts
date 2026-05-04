@@ -1,11 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
-import { getProfileById } from "@/lib/db";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { adminAuth } from "@/lib/firebase-admin";
+import { getProfileById } from "@/lib/db";
 
 export async function getUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("__session")?.value;
+    if (!sessionCookie) return null;
+    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+    return { id: decoded.uid, email: decoded.email || "" };
+  } catch {
+    return null;
+  }
 }
 
 export async function getProfile() {

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && sh -c '[ \"$VERCEL_ENV\" = \"production\" ] && prisma db push --accept-data-loss --skip-generate 2>&1 || echo \"db push skipped\"' && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "npx @biomejs/biome check ./src",
     "prepare": "husky"
@@ -14,6 +14,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "firebase": "^12.12.1",
+    "firebase-admin": "^13.8.0",
     "next": "16.2.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

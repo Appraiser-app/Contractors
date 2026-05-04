@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import { countAdmins, createProfile } from "@/lib/db";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+import { adminAuth } from "@/lib/firebase-admin";
 
 // One-time setup route to create the first admin users (Sagi and Dor)
 export async function POST(req: Request) {
@@ -38,17 +32,8 @@ export async function POST(req: Request) {
     for (const u of users) {
       const { email, name, password } = u;
       try {
-        const { data, error } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-        });
-        if (error || !data.user) {
-          errors.push({ email, error: error?.message || "no user" });
-          continue;
-        }
-
-        await createProfile({ id: data.user.id, email, name, role: "ADMIN" });
+        const firebaseUser = await adminAuth.createUser({ email, password, displayName: name });
+        await createProfile({ id: firebaseUser.uid, email, name, role: "ADMIN" });
         created.push(email);
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : JSON.stringify(e);

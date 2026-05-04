@@ -1,271 +1,350 @@
-import { createClient } from "@supabase/supabase-js";
+import { adminDb } from "@/lib/firebase-admin";
 
-// Admin Supabase client (bypasses RLS) for server-side use only
-export const db = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+// --- Helpers ---
+function docToObj<T>(doc: FirebaseFirestore.DocumentSnapshot): T {
+  return { id: doc.id, ...doc.data() } as T;
+}
+
+function snap<T>(snapshot: FirebaseFirestore.QuerySnapshot): T[] {
+  return snapshot.docs.map(doc => docToObj<T>(doc));
+}
 
 // --- Profiles ---
 export async function getProfileById(id: string) {
-  const { data } = await db.from("Profile").select("*").eq("id", id).single();
-  return data as Profile | null;
+  const doc = await adminDb.collection("profiles").doc(id).get();
+  if (!doc.exists) return null;
+  return docToObj<Profile>(doc);
 }
 
 export async function getAllProfiles() {
-  const { data } = await db.from("Profile").select("*").order("createdAt", { ascending: true });
-  return (data || []) as Profile[];
+  const snapshot = await adminDb.collection("profiles").orderBy("createdAt", "asc").get();
+  return snap<Profile>(snapshot);
 }
 
 export async function createProfile(profile: { id: string; email: string; name: string; role: "ADMIN" | "SECRETARY" }) {
-  const { data, error } = await db.from("Profile").insert({ ...profile, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const now = new Date().toISOString();
+  const data = { ...profile, googleRefreshToken: null, createdAt: now, updatedAt: now };
+  await adminDb.collection("profiles").doc(profile.id).set(data);
   return data as Profile;
 }
 
 export async function updateProfileRole(id: string, role: "ADMIN" | "SECRETARY") {
-  const { error } = await db.from("Profile").update({ role, updatedAt: new Date().toISOString() }).eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("profiles").doc(id).update({ role, updatedAt: new Date().toISOString() });
 }
 
 export async function saveGoogleRefreshToken(id: string, token: string) {
-  const { error } = await db.from("Profile").update({ googleRefreshToken: token, updatedAt: new Date().toISOString() }).eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("profiles").doc(id).update({ googleRefreshToken: token, updatedAt: new Date().toISOString() });
 }
 
 export async function clearGoogleRefreshToken(id: string) {
-  const { error } = await db.from("Profile").update({ googleRefreshToken: null, updatedAt: new Date().toISOString() }).eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("profiles").doc(id).update({ googleRefreshToken: null, updatedAt: new Date().toISOString() });
 }
 
 export async function deleteProfile(id: string) {
-  const { error } = await db.from("Profile").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("profiles").doc(id).delete();
 }
 
 export async function countAdmins() {
-  const { count, error } = await db.from("Profile").select("id", { count: "exact", head: true }).eq("role", "ADMIN");
-  if (error) throw error;
-  return count || 0;
+  const snapshot = await adminDb.collection("profiles").where("role", "==", "ADMIN").get();
+  return snapshot.size;
 }
 
 // --- Work Sites ---
 export async function getAllSites() {
-  const { data } = await db.from("WorkSite").select("*, transactions:Transaction(*)").order("createdAt", { ascending: false });
-  return (data || []) as WorkSite[];
+  const [sitesSnap, txSnap] = await Promise.all([
+    adminDb.collection("sites").orderBy("createdAt", "desc").get(),
+    adminDb.collection("transactions").get(),
+  ]);
+  const transactions = snap<Transaction>(txSnap);
+  return sitesSnap.docs.map(doc => {
+    const site = docToObj<WorkSite>(doc);
+    site.transactions = transactions.filter(t => t.workSiteId === site.id);
+    return site;
+  });
 }
 
 export async function getSiteById(id: string) {
-  const { data } = await db.from("WorkSite").select("*, transactions:Transaction(*)").eq("id", id).single();
-  return data as WorkSite | null;
+  const [doc, txSnap] = await Promise.all([
+    adminDb.collection("sites").doc(id).get(),
+    adminDb.collection("transactions").where("workSiteId", "==", id).get(),
+  ]);
+  if (!doc.exists) return null;
+  const site = docToObj<WorkSite>(doc);
+  site.transactions = snap<Transaction>(txSnap);
+  return site;
 }
 
 export async function createSite(siteData: Partial<WorkSite>) {
-  const { data, error } = await db.from("WorkSite").insert({ ...siteData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...siteData, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("sites").doc(id).set(data);
   return data as WorkSite;
 }
 
 export async function updateSite(id: string, siteData: Partial<WorkSite>) {
-  const { data, error } = await db.from("WorkSite").update({ ...siteData, updatedAt: new Date().toISOString() }).eq("id", id).select().single();
-  if (error) throw error;
-  return data as WorkSite;
+  const updates = { ...siteData, updatedAt: new Date().toISOString() };
+  await adminDb.collection("sites").doc(id).update(updates);
+  const doc = await adminDb.collection("sites").doc(id).get();
+  return docToObj<WorkSite>(doc);
 }
 
 export async function deleteSite(id: string) {
-  const { error } = await db.from("WorkSite").delete().eq("id", id);
-  if (error) throw error;
+  const txSnap = await adminDb.collection("transactions").where("workSiteId", "==", id).get();
+  const batch = adminDb.batch();
+  txSnap.docs.forEach(doc => batch.delete(doc.ref));
+  batch.delete(adminDb.collection("sites").doc(id));
+  await batch.commit();
 }
 
 // --- Transactions ---
 export async function getAllTransactions() {
-  const { data } = await db.from("Transaction").select("*, workSite:WorkSite(id,name)").order("date", { ascending: false });
-  return (data || []) as Transaction[];
+  const [txSnap, sitesSnap] = await Promise.all([
+    adminDb.collection("transactions").orderBy("date", "desc").get(),
+    adminDb.collection("sites").get(),
+  ]);
+  const siteMap: Record<string, { id: string; name: string }> = {};
+  sitesSnap.docs.forEach(doc => { siteMap[doc.id] = { id: doc.id, name: doc.data().name }; });
+  return snap<Transaction>(txSnap).map(t => ({ ...t, workSite: siteMap[t.workSiteId] }));
 }
 
 export async function createTransaction(txData: Partial<Transaction> & { workSiteId: string }) {
-  const { data, error } = await db.from("Transaction").insert({ ...txData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = txData.id || crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...txData, id, approvalStatus: txData.approvalStatus || "PENDING", createdAt: now, updatedAt: now };
+  await adminDb.collection("transactions").doc(id).set(data);
   return data as Transaction;
 }
 
 export async function deleteTransaction(id: string) {
-  const { error } = await db.from("Transaction").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("transactions").doc(id).delete();
 }
 
 export async function approveTransaction(id: string, approverId: string) {
-  const { error } = await db.from("Transaction").update({
+  await adminDb.collection("transactions").doc(id).update({
     approvalStatus: "APPROVED",
     approvedById: approverId,
     approvedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  }).eq("id", id);
-  if (error) throw error;
+  });
 }
 
 export async function rejectTransaction(id: string, approverId: string) {
-  const { error } = await db.from("Transaction").update({
+  await adminDb.collection("transactions").doc(id).update({
     approvalStatus: "REJECTED",
     approvedById: approverId,
     approvedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  }).eq("id", id);
-  if (error) throw error;
-}
-
-// --- Notifications ---
-export async function getNotificationsForUser(userId: string) {
-  const { data } = await db.from("Notification").select("*").eq("userId", userId).order("createdAt", { ascending: false }).limit(50);
-  return (data || []) as Notification[];
-}
-
-export async function getUnreadCount(userId: string) {
-  const { count } = await db.from("Notification").select("id", { count: "exact", head: true }).eq("userId", userId).eq("isRead", false);
-  return count || 0;
-}
-
-export async function createNotification(notif: Omit<Notification, "id" | "createdAt" | "isRead">) {
-  const { error } = await db.from("Notification").insert({ ...notif, isRead: false, createdAt: new Date().toISOString() });
-  if (error) throw error;
-}
-
-export async function markNotificationRead(id: string) {
-  const { error } = await db.from("Notification").update({ isRead: true }).eq("id", id);
-  if (error) throw error;
-}
-
-export async function markAllNotificationsRead(userId: string) {
-  const { error } = await db.from("Notification").update({ isRead: true }).eq("userId", userId).eq("isRead", false);
-  if (error) throw error;
+  });
 }
 
 // --- Equipment ---
+async function getEquipmentRelated(equipmentIds: string[]) {
+  if (equipmentIds.length === 0) return { maintenance: [], insurances: [], expenses: [], documents: [] };
+  const [maintSnap, insSnap, expSnap, docSnap] = await Promise.all([
+    adminDb.collection("maintenance").get(),
+    adminDb.collection("insurances").get(),
+    adminDb.collection("equipmentExpenses").get(),
+    adminDb.collection("documents").get(),
+  ]);
+  return {
+    maintenance: snap<MaintenanceRecord>(maintSnap).filter(r => equipmentIds.includes(r.equipmentId)),
+    insurances: snap<Insurance>(insSnap).filter(r => equipmentIds.includes(r.equipmentId)),
+    expenses: snap<EquipmentExpense>(expSnap).filter(r => equipmentIds.includes(r.equipmentId)),
+    documents: snap<Document>(docSnap).filter(r => r.equipmentId != null && equipmentIds.includes(r.equipmentId!)),
+  };
+}
+
 export async function getAllEquipment() {
-  const { data } = await db.from("Equipment").select("*, maintenance:MaintenanceRecord(*), insurances:Insurance(*), expenses:EquipmentExpense(*), documents:Document(*)").order("createdAt", { ascending: false });
-  return (data || []) as Equipment[];
+  const eqSnap = await adminDb.collection("equipment").orderBy("createdAt", "desc").get();
+  const equipment = snap<Equipment>(eqSnap);
+  if (equipment.length === 0) return equipment;
+  const ids = equipment.map(e => e.id);
+  const related = await getEquipmentRelated(ids);
+  return equipment.map(eq => ({
+    ...eq,
+    maintenance: related.maintenance.filter(r => r.equipmentId === eq.id),
+    insurances: related.insurances.filter(r => r.equipmentId === eq.id),
+    expenses: related.expenses.filter(r => r.equipmentId === eq.id),
+    documents: related.documents.filter(r => r.equipmentId === eq.id),
+  }));
 }
 
 export async function getEquipmentById(id: string) {
-  const { data } = await db.from("Equipment").select("*, maintenance:MaintenanceRecord(*), insurances:Insurance(*), expenses:EquipmentExpense(*), documents:Document(*)").eq("id", id).single();
-  return data as Equipment | null;
+  const doc = await adminDb.collection("equipment").doc(id).get();
+  if (!doc.exists) return null;
+  const eq = docToObj<Equipment>(doc);
+  const related = await getEquipmentRelated([id]);
+  return {
+    ...eq,
+    maintenance: related.maintenance,
+    insurances: related.insurances,
+    expenses: related.expenses,
+    documents: related.documents,
+  };
 }
 
-export async function createEquipment(eq: Partial<Equipment>) {
-  const { data, error } = await db.from("Equipment").insert({ ...eq, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+export async function createEquipment(eqData: Partial<Equipment>) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...eqData, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("equipment").doc(id).set(data);
   return data as Equipment;
 }
 
-export async function updateEquipment(id: string, eq: Partial<Equipment>) {
-  const { data, error } = await db.from("Equipment").update({ ...eq, updatedAt: new Date().toISOString() }).eq("id", id).select().single();
-  if (error) throw error;
-  return data as Equipment;
+export async function updateEquipment(id: string, eqData: Partial<Equipment>) {
+  await adminDb.collection("equipment").doc(id).update({ ...eqData, updatedAt: new Date().toISOString() });
+  const doc = await adminDb.collection("equipment").doc(id).get();
+  return docToObj<Equipment>(doc);
 }
 
 export async function deleteEquipment(id: string) {
-  const { error } = await db.from("Equipment").delete().eq("id", id);
-  if (error) throw error;
+  const [maintSnap, insSnap, expSnap, docSnap] = await Promise.all([
+    adminDb.collection("maintenance").where("equipmentId", "==", id).get(),
+    adminDb.collection("insurances").where("equipmentId", "==", id).get(),
+    adminDb.collection("equipmentExpenses").where("equipmentId", "==", id).get(),
+    adminDb.collection("documents").where("equipmentId", "==", id).get(),
+  ]);
+  const batch = adminDb.batch();
+  [...maintSnap.docs, ...insSnap.docs, ...expSnap.docs, ...docSnap.docs].forEach(doc => batch.delete(doc.ref));
+  batch.delete(adminDb.collection("equipment").doc(id));
+  await batch.commit();
 }
 
 // --- Maintenance ---
 export async function createMaintenance(data: Partial<MaintenanceRecord> & { equipmentId: string }) {
-  const { data: rec, error } = await db.from("MaintenanceRecord").insert({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("maintenance").doc(id).set(rec);
   return rec as MaintenanceRecord;
 }
 
 export async function deleteMaintenance(id: string) {
-  const { error } = await db.from("MaintenanceRecord").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("maintenance").doc(id).delete();
 }
 
 // --- Insurance ---
 export async function createInsurance(data: Partial<Insurance> & { equipmentId: string }) {
-  const { data: ins, error } = await db.from("Insurance").insert({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
-  return ins as Insurance;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("insurances").doc(id).set(rec);
+  return rec as Insurance;
 }
 
 export async function updateInsurance(id: string, data: Partial<Insurance>) {
-  const { error } = await db.from("Insurance").update({ ...data, updatedAt: new Date().toISOString() }).eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("insurances").doc(id).update({ ...data, updatedAt: new Date().toISOString() });
 }
 
 export async function deleteInsurance(id: string) {
-  const { error } = await db.from("Insurance").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("insurances").doc(id).delete();
 }
 
 // --- Equipment Expenses ---
 export async function createEquipmentExpense(data: Partial<EquipmentExpense> & { equipmentId: string }) {
-  const { data: exp, error } = await db.from("EquipmentExpense").insert({ ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
-  return exp as EquipmentExpense;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("equipmentExpenses").doc(id).set(rec);
+  return rec as EquipmentExpense;
 }
 
 export async function deleteEquipmentExpense(id: string) {
-  const { error } = await db.from("EquipmentExpense").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("equipmentExpenses").doc(id).delete();
 }
 
 // --- Documents ---
 export async function getAllDocuments() {
-  const { data } = await db.from("Document").select("*, equipment:Equipment(id,name,type)").order("createdAt", { ascending: false });
-  return (data || []) as Document[];
+  const [docSnap, eqSnap] = await Promise.all([
+    adminDb.collection("documents").orderBy("createdAt", "desc").get(),
+    adminDb.collection("equipment").get(),
+  ]);
+  const eqMap: Record<string, { id: string; name: string; type: string }> = {};
+  eqSnap.docs.forEach(doc => { eqMap[doc.id] = { id: doc.id, name: doc.data().name, type: doc.data().type }; });
+  return snap<Document>(docSnap).map(d => ({ ...d, equipment: d.equipmentId ? eqMap[d.equipmentId] : null }));
 }
 
 export async function getExpiringDocuments(days = 30) {
   const future = new Date();
   future.setDate(future.getDate() + days);
-  const { data } = await db.from("Document").select("*, equipment:Equipment(id,name,type)").not("expiryDate", "is", null).lte("expiryDate", future.toISOString()).order("expiryDate", { ascending: true });
-  return (data || []) as Document[];
+  const snapshot = await adminDb.collection("documents").get();
+  return snap<Document>(snapshot).filter(d => d.expiryDate && new Date(d.expiryDate) <= future);
 }
 
 export async function createDocument(doc: Partial<Document>) {
-  const { data, error } = await db.from("Document").insert({ ...doc, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...doc, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("documents").doc(id).set(data);
   return data as Document;
 }
 
 export async function deleteDocument(id: string) {
-  const { error } = await db.from("Document").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("documents").doc(id).delete();
 }
 
 // --- WhatsApp Messages ---
 export async function getAllWhatsAppMessages() {
-  const { data } = await db.from("WhatsAppMessage").select("*").order("createdAt", { ascending: false });
-  return (data || []) as WhatsAppMessage[];
+  const snapshot = await adminDb.collection("whatsappMessages").orderBy("createdAt", "desc").get();
+  return snap<WhatsAppMessage>(snapshot);
 }
 
 export async function saveWhatsAppMessage(msg: Omit<WhatsAppMessage, "id" | "createdAt">) {
-  const { data, error } = await db.from("WhatsAppMessage").insert({ ...msg, createdAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = crypto.randomUUID();
+  const data = { ...msg, id, createdAt: new Date().toISOString() };
+  await adminDb.collection("whatsappMessages").doc(id).set(data);
   return data as WhatsAppMessage;
 }
 
 // --- Tasks ---
 export async function getAllTasks() {
-  const { data } = await db.from("Task").select("*").order("createdAt", { ascending: false });
-  return (data || []) as Task[];
+  const snapshot = await adminDb.collection("tasks").orderBy("createdAt", "desc").get();
+  return snap<Task>(snapshot);
 }
 
 export async function createTask(task: Partial<Task>) {
-  const { data, error } = await db.from("Task").insert({ ...task, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).select().single();
-  if (error) throw error;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...task, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("tasks").doc(id).set(data);
   return data as Task;
 }
 
 export async function updateTask(id: string, updates: Partial<Task>) {
-  const { error } = await db.from("Task").update({ ...updates, updatedAt: new Date().toISOString() }).eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("tasks").doc(id).update({ ...updates, updatedAt: new Date().toISOString() });
 }
 
 export async function deleteTask(id: string) {
-  const { error } = await db.from("Task").delete().eq("id", id);
-  if (error) throw error;
+  await adminDb.collection("tasks").doc(id).delete();
+}
+
+// --- Notifications ---
+export async function getNotificationsForUser(userId: string) {
+  const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).orderBy("createdAt", "desc").limit(50).get();
+  return snap<Notification>(snapshot);
+}
+
+export async function getUnreadCount(userId: string) {
+  const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).where("isRead", "==", false).get();
+  return snapshot.size;
+}
+
+export async function createNotification(notif: Omit<Notification, "id" | "createdAt" | "isRead">) {
+  const id = crypto.randomUUID();
+  const data = { ...notif, id, isRead: false, createdAt: new Date().toISOString() };
+  await adminDb.collection("notifications").doc(id).set(data);
+}
+
+export async function markNotificationRead(id: string) {
+  await adminDb.collection("notifications").doc(id).update({ isRead: true });
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).where("isRead", "==", false).get();
+  const batch = adminDb.batch();
+  snapshot.docs.forEach(doc => batch.update(doc.ref, { isRead: true }));
+  await batch.commit();
 }
 
 // --- Types ---
@@ -336,37 +415,57 @@ export type Document = {
 };
 
 export type WhatsAppMessage = {
-  id: string;
-  to: string;
-  toName: string | null;
-  body: string;
-  status: string;
-  siteId: string | null;
-  sentBy: string | null;
-  createdAt: string;
-};
-
-export type Notification = {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  body: string;
-  relatedId: string | null;
-  isRead: boolean;
+  id: string; to: string; toName: string | null;
+  body: string; status: string; siteId: string | null; sentBy: string | null;
   createdAt: string;
 };
 
 export type Task = {
-  id: string;
-  title: string;
-  description: string | null;
+  id: string; title: string; description: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  dueDate: string | null;
-  assignedTo: string | null;
-  siteId: string | null;
-  createdBy: string | null;
-  createdAt: string;
-  updatedAt: string;
+  dueDate: string | null; assignedTo: string | null;
+  siteId: string | null; createdBy: string | null;
+  createdAt: string; updatedAt: string;
 };
+
+export type Notification = {
+  id: string; userId: string; type: string;
+  title: string; body: string; relatedId: string | null;
+  isRead: boolean; createdAt: string;
+};
+
+export type Invitation = {
+  id: string; email: string; name: string;
+  role: "ADMIN" | "SECRETARY";
+  status: "PENDING" | "ACCEPTED";
+  invitedById: string;
+  createdAt: string; acceptedAt: string | null;
+};
+
+// --- Invitations ---
+export async function createInvitation(data: Omit<Invitation, "id" | "createdAt" | "acceptedAt" | "status">) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const inv = { ...data, id, status: "PENDING", createdAt: now, acceptedAt: null };
+  await adminDb.collection("invitations").doc(id).set(inv);
+  return inv as Invitation;
+}
+
+export async function getInvitations() {
+  const snapshot = await adminDb.collection("invitations").orderBy("createdAt", "desc").get();
+  return snap<Invitation>(snapshot);
+}
+
+export async function getInvitationByEmail(email: string) {
+  const snapshot = await adminDb.collection("invitations").where("email", "==", email).limit(1).get();
+  return snapshot.empty ? null : docToObj<Invitation>(snapshot.docs[0]);
+}
+
+export async function acceptInvitation(id: string) {
+  await adminDb.collection("invitations").doc(id).update({ status: "ACCEPTED", acceptedAt: new Date().toISOString() });
+}
+
+export async function deleteInvitation(id: string) {
+  await adminDb.collection("invitations").doc(id).delete();
+}

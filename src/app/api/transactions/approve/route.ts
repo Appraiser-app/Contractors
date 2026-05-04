@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { approveTransaction, rejectTransaction, getProfileById, getAllProfiles, createNotification, getNotificationsForUser } from "@/lib/db";
-import { db } from "@/lib/db";
+import { approveTransaction, rejectTransaction, getProfileById, createNotification } from "@/lib/db";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   const user = await getUser();
@@ -12,9 +12,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "נתונים חסרים" }, { status: 400 });
   }
 
-  const { data: tx } = await db.from("Transaction").select("*, workSite:WorkSite(name)").eq("id", transactionId).single();
-  if (!tx) return NextResponse.json({ error: "תנועה לא נמצאה" }, { status: 404 });
-  if (tx.createdById === user.id) return NextResponse.json({ error: "לא ניתן לאשר תנועה שיצרת בעצמך" }, { status: 403 });
+  const txDoc = await adminDb.collection("transactions").doc(transactionId).get();
+  if (!txDoc.exists) return NextResponse.json({ error: "תנועה לא נמצאה" }, { status: 404 });
+  const tx = txDoc.data()!;
+
+  if (tx.createdById === user.id) {
+    return NextResponse.json({ error: "לא ניתן לאשר תנועה שיצרת בעצמך" }, { status: 403 });
+  }
 
   const approver = await getProfileById(user.id);
   const approverName = approver?.name || "משתמש";

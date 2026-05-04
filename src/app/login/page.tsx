@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 type Mode = "login" | "signup";
@@ -19,56 +20,54 @@ export default function LoginPage() {
   const router = useRouter();
 
   function switchMode(m: Mode) {
-    setMode(m);
-    setError("");
-    setSuccess("");
-    setPassword("");
-    setConfirmPassword("");
+    setMode(m); setError(""); setSuccess(""); setPassword(""); setConfirmPassword("");
+  }
+
+  async function createSession(idToken: string) {
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    return res.ok;
   }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await cred.user.getIdToken();
+      const ok = await createSession(idToken);
+      if (ok) router.push("/dashboard");
+      else setError("שגיאה בכניסה, נסה שוב");
+    } catch {
       setError("אימייל או סיסמה שגויים");
+    } finally {
       setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
     }
   }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("הסיסמאות אינן תואמות");
-      return;
-    }
-    if (password.length < 6) {
-      setError("הסיסמה חייבת להכיל לפחות 6 תווים");
-      return;
-    }
+    if (password !== confirmPassword) { setError("הסיסמאות אינן תואמות"); return; }
+    if (password.length < 6) { setError("הסיסמה חייבת להכיל לפחות 6 תווים"); return; }
     setLoading(true);
     setError("");
-
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
     const data = await res.json();
-
     if (!res.ok) {
       setError(data.error || "שגיאה בהרשמה");
       setLoading(false);
     } else {
       setSuccess("נרשמת בהצלחה! כעת תוכל להתחבר עם הפרטים שלך.");
       setLoading(false);
-      setPassword("");
-      setConfirmPassword("");
+      setPassword(""); setConfirmPassword("");
       setTimeout(() => switchMode("login"), 2000);
     }
   }
@@ -76,13 +75,25 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-    });
-    if (error) {
+    try {
+      const provider = new GoogleAuthProvider();
+      const cred = await signInWithPopup(auth, provider);
+      // Create profile if new user
+      const isNew = cred.user.metadata.creationTime === cred.user.metadata.lastSignInTime;
+      if (isNew) {
+        await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: cred.user.displayName || cred.user.email, email: cred.user.email, password: crypto.randomUUID() }),
+        });
+      }
+      const idToken = await cred.user.getIdToken();
+      const ok = await createSession(idToken);
+      if (ok) router.push("/dashboard");
+      else setError("שגיאה בכניסה");
+    } catch {
       setError("שגיאה בהתחברות עם גוגל");
+    } finally {
       setGoogleLoading(false);
     }
   }
@@ -90,7 +101,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-stone-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-2xl mb-4 shadow-xl shadow-green-900/40">
             <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,38 +111,18 @@ export default function LoginPage() {
           <p className="text-stone-400 text-sm mt-1">שגיא ודור</p>
         </div>
 
-        {/* Mode tabs */}
         <div className="flex bg-stone-800/60 rounded-2xl p-1 mb-4 border border-stone-700/50">
-          <button
-            onClick={() => switchMode("login")}
-            className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
-              mode === "login"
-                ? "bg-green-600 text-white shadow-md"
-                : "text-stone-400 hover:text-white"
-            }`}
-          >
-            כניסה
-          </button>
-          <button
-            onClick={() => switchMode("signup")}
-            className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
-              mode === "signup"
-                ? "bg-green-600 text-white shadow-md"
-                : "text-stone-400 hover:text-white"
-            }`}
-          >
-            הרשמה
-          </button>
+          {(["login", "signup"] as Mode[]).map(m => (
+            <button key={m} onClick={() => switchMode(m)}
+              className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${mode === m ? "bg-green-600 text-white shadow-md" : "text-stone-400 hover:text-white"}`}>
+              {m === "login" ? "כניסה" : "הרשמה"}
+            </button>
+          ))}
         </div>
 
         <div className="bg-stone-800 rounded-2xl p-6 border border-stone-700 space-y-4">
-          {/* Google button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 disabled:bg-stone-600 disabled:cursor-not-allowed text-gray-800 font-semibold py-3 rounded-xl transition-colors"
-          >
+          <button type="button" onClick={handleGoogleLogin} disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 disabled:bg-stone-600 disabled:cursor-not-allowed text-gray-800 font-semibold py-3 rounded-xl transition-colors">
             {googleLoading ? (
               <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -155,28 +145,21 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-stone-700" />
           </div>
 
-          {/* Login form */}
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">אימייל</label>
-                <input
-                  type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
-                  placeholder="name@example.com" dir="ltr"
-                />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                  placeholder="name@example.com" dir="ltr" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">סיסמה</label>
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
-                  placeholder="••••••••"
-                />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                  placeholder="••••••••" />
               </div>
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>
-              )}
+              {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>}
               <button type="submit" disabled={loading || googleLoading}
                 className="w-full bg-green-600 hover:bg-green-500 disabled:bg-stone-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
                 {loading ? "מתחבר..." : "כניסה"}
@@ -184,66 +167,42 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* Signup form */}
           {mode === "signup" && (
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">שם מלא</label>
-                <input
-                  type="text" value={name} onChange={e => setName(e.target.value)} required
-                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
-                  placeholder="ישראל ישראלי"
-                />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                  placeholder="ישראל ישראלי" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">אימייל</label>
-                <input
-                  type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
-                  placeholder="name@example.com" dir="ltr"
-                />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                  placeholder="name@example.com" dir="ltr" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">סיסמה</label>
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
-                  placeholder="לפחות 6 תווים"
-                />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                  className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                  placeholder="לפחות 6 תווים" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-1.5">אימות סיסמה</label>
-                <input
-                  type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                  className={`w-full bg-stone-900 border rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition ${
-                    confirmPassword && password !== confirmPassword ? "border-red-500" : "border-stone-600"
-                  }`}
-                  placeholder="••••••••"
-                />
-                {confirmPassword && password !== confirmPassword && (
-                  <p className="text-red-400 text-xs mt-1">הסיסמאות אינן תואמות</p>
-                )}
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                  className={`w-full bg-stone-900 border rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition ${confirmPassword && password !== confirmPassword ? "border-red-500" : "border-stone-600"}`}
+                  placeholder="••••••••" />
               </div>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>
-              )}
-              {success && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm text-center">{success}</div>
-              )}
-
+              {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>}
+              {success && <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm text-center">{success}</div>}
               <button type="submit" disabled={loading || googleLoading || (!!confirmPassword && password !== confirmPassword)}
                 className="w-full bg-green-600 hover:bg-green-500 disabled:bg-stone-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
                 {loading ? "נרשם..." : "צור חשבון"}
               </button>
-
-              <p className="text-stone-500 text-xs text-center">
-                החשבון ייפתח עם הרשאות בסיסיות — מנהל המערכת יכול לשדרג הרשאות
-              </p>
+              <p className="text-stone-500 text-xs text-center">החשבון ייפתח עם הרשאות בסיסיות — מנהל המערכת יכול לשדרג הרשאות</p>
             </form>
           )}
         </div>
-
         <p className="text-center text-stone-600 text-xs mt-6">גישה לאנשי הצוות בלבד</p>
       </div>
     </div>

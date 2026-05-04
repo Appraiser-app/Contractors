@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 type Profile = {
   id: string;
@@ -362,8 +361,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   }, [mobileOpen]);
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/signout", { method: "POST" });
     router.push("/login");
   }
 

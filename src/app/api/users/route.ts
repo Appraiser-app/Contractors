@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { createProfile } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+import { adminAuth } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   const user = await getUser();
@@ -19,25 +13,20 @@ export async function POST(req: Request) {
   const { email, name, password, role } = await req.json();
   if (!email || !name || !password) return NextResponse.json({ error: "שדות חובה חסרים" }, { status: 400 });
 
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
-
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: authError?.message || "שגיאה ביצירת משתמש" }, { status: 400 });
-  }
-
   try {
+    const firebaseUser = await adminAuth.createUser({ email, password, displayName: name });
     await createProfile({
-      id: authData.user.id,
+      id: firebaseUser.uid,
       email,
       name,
       role: role === "ADMIN" ? "ADMIN" : "SECRETARY",
     });
     return NextResponse.json({ ok: true });
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg.includes("email-already-exists")) {
+      return NextResponse.json({ error: "כתובת האימייל הזו כבר רשומה במערכת" }, { status: 409 });
+    }
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
