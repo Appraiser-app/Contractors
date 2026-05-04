@@ -24,6 +24,12 @@ enum TransactionType {
   EXPENSE
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Profile {
   id                  String   @id
   email               String   @unique
@@ -51,17 +57,32 @@ model WorkSite {
 }
 
 model Transaction {
-  id          String          @id @default(cuid())
-  workSiteId  String
-  workSite    WorkSite        @relation(fields: [workSiteId], references: [id], onDelete: Cascade)
-  type        TransactionType
-  amount      Float
-  description String
-  category    String?
-  date        DateTime        @default(now())
-  receiptUrl  String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id             String          @id @default(cuid())
+  workSiteId     String
+  workSite       WorkSite        @relation(fields: [workSiteId], references: [id], onDelete: Cascade)
+  type           TransactionType
+  amount         Float
+  description    String
+  category       String?
+  date           DateTime        @default(now())
+  receiptUrl     String?
+  approvalStatus ApprovalStatus  @default(PENDING)
+  createdById    String?
+  approvedById   String?
+  approvedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  title       String
+  body        String
+  relatedId   String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 enum EquipmentType {

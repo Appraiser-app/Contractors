@@ -95,6 +95,52 @@ export async function deleteTransaction(id: string) {
   if (error) throw error;
 }
 
+export async function approveTransaction(id: string, approverId: string) {
+  const { error } = await db.from("Transaction").update({
+    approvalStatus: "APPROVED",
+    approvedById: approverId,
+    approvedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function rejectTransaction(id: string, approverId: string) {
+  const { error } = await db.from("Transaction").update({
+    approvalStatus: "REJECTED",
+    approvedById: approverId,
+    approvedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }).eq("id", id);
+  if (error) throw error;
+}
+
+// --- Notifications ---
+export async function getNotificationsForUser(userId: string) {
+  const { data } = await db.from("Notification").select("*").eq("userId", userId).order("createdAt", { ascending: false }).limit(50);
+  return (data || []) as Notification[];
+}
+
+export async function getUnreadCount(userId: string) {
+  const { count } = await db.from("Notification").select("id", { count: "exact", head: true }).eq("userId", userId).eq("isRead", false);
+  return count || 0;
+}
+
+export async function createNotification(notif: Omit<Notification, "id" | "createdAt" | "isRead">) {
+  const { error } = await db.from("Notification").insert({ ...notif, isRead: false, createdAt: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function markNotificationRead(id: string) {
+  const { error } = await db.from("Notification").update({ isRead: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const { error } = await db.from("Notification").update({ isRead: true }).eq("userId", userId).eq("isRead", false);
+  if (error) throw error;
+}
+
 // --- Equipment ---
 export async function getAllEquipment() {
   const { data } = await db.from("Equipment").select("*, maintenance:MaintenanceRecord(*), insurances:Insurance(*), expenses:EquipmentExpense(*), documents:Document(*)").order("createdAt", { ascending: false });
@@ -242,6 +288,10 @@ export type Transaction = {
   id: string; workSiteId: string; type: "INCOME" | "EXPENSE";
   amount: number; description: string; category: string | null; date: string;
   receiptUrl: string | null;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+  createdById: string | null;
+  approvedById: string | null;
+  approvedAt: string | null;
   createdAt: string; updatedAt: string; workSite?: Partial<WorkSite>;
 };
 
@@ -293,6 +343,17 @@ export type WhatsAppMessage = {
   status: string;
   siteId: string | null;
   sentBy: string | null;
+  createdAt: string;
+};
+
+export type Notification = {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  relatedId: string | null;
+  isRead: boolean;
   createdAt: string;
 };
 

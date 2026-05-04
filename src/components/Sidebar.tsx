@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Profile = {
@@ -11,6 +11,16 @@ type Profile = {
   email: string;
   role: string;
 } | null;
+
+type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  relatedId: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
 
 const navItems = [
   {
@@ -100,6 +110,135 @@ const adminItems = [
   },
 ];
 
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  async function load() {
+    const res = await fetch("/api/notifications");
+    if (res.ok) {
+      const data = await res.json();
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  async function markAll() {
+    await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }), headers: { "Content-Type": "application/json" } });
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+  }
+
+  async function handleNotifClick(notif: Notification) {
+    if (!notif.isRead) {
+      await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id: notif.id }), headers: { "Content-Type": "application/json" } });
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    if (notif.relatedId) {
+      setOpen(false);
+      router.push("/transactions");
+    }
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "עכשיו";
+    if (m < 60) return `לפני ${m} דק'`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `לפני ${h} שע'`;
+    return `לפני ${Math.floor(h / 24)} ימים`;
+  }
+
+  const typeIcon: Record<string, string> = {
+    TRANSACTION_PENDING: "⏳",
+    TRANSACTION_APPROVED: "✅",
+    TRANSACTION_REJECTED: "❌",
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-stone-400 hover:text-white hover:bg-stone-800/70 text-sm font-medium transition-all"
+      >
+        <span className="relative opacity-60">
+          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white font-bold flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </span>
+        התראות
+        {unreadCount > 0 && (
+          <span className="mr-auto text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <p className="font-bold text-gray-900 text-sm">התראות</p>
+            {unreadCount > 0 && (
+              <button onClick={markAll} className="text-xs text-green-600 hover:text-green-700 font-medium">
+                סמן הכל כנקרא
+              </button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm">אין התראות</div>
+            ) : (
+              notifications.map(notif => (
+                <button
+                  key={notif.id}
+                  onClick={() => handleNotifClick(notif)}
+                  className={`w-full text-right px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${!notif.isRead ? "bg-green-50/50" : ""}`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base mt-0.5 flex-shrink-0">{typeIcon[notif.type] || "🔔"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold ${!notif.isRead ? "text-gray-900" : "text-gray-600"}`}>
+                        {notif.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{notif.body}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{timeAgo(notif.createdAt)}</p>
+                    </div>
+                    {!notif.isRead && <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0 mt-1.5" />}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NavContent({ profile, pathname, onClose, handleLogout }: {
   profile: Profile;
   pathname: string;
@@ -178,8 +317,13 @@ function NavContent({ profile, pathname, onClose, handleLogout }: {
         )}
       </nav>
 
+      {/* Notifications */}
+      <div className="px-3 pb-2">
+        <NotificationBell />
+      </div>
+
       {/* User info + logout */}
-      <div className="px-3 py-4 border-t border-stone-800/60">
+      <div className="px-3 py-3 border-t border-stone-800/60">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-stone-800/70 transition-colors mb-1">
           <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white text-xs font-bold">
@@ -210,10 +354,8 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Prevent body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };

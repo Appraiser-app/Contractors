@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { createTransaction } from "@/lib/db";
+import { createTransaction, getAllProfiles, getProfileById, createNotification, getAllTransactions } from "@/lib/db";
 import { getUser } from "@/lib/auth";
+
+export async function GET() {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const transactions = await getAllTransactions();
+  return NextResponse.json(transactions);
+}
 
 export async function POST(req: Request) {
   const user = await getUser();
@@ -22,7 +29,33 @@ export async function POST(req: Request) {
       category: category || null,
       date: date || new Date().toISOString(),
       receiptUrl: receiptUrl || null,
+      createdById: user.id,
+      approvalStatus: "PENDING",
     });
+
+    // Notify all other users
+    const [allProfiles, creator] = await Promise.all([
+      getAllProfiles(),
+      getProfileById(user.id),
+    ]);
+    const creatorName = creator?.name || "משתמש";
+    const typeLabel = type === "INCOME" ? "הכנסה" : "הוצאה";
+    const formattedAmount = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(parseFloat(amount));
+
+    await Promise.all(
+      allProfiles
+        .filter(p => p.id !== user.id)
+        .map(p =>
+          createNotification({
+            userId: p.id,
+            type: "TRANSACTION_PENDING",
+            title: `${typeLabel} חדשה ממתינה לאישור`,
+            body: `${creatorName} דיווח על ${typeLabel} של ${formattedAmount}: "${description}"`,
+            relatedId: transaction.id,
+          })
+        )
+    );
+
     return NextResponse.json(transaction);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
