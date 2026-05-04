@@ -111,14 +111,14 @@ export default function WhatsAppPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-4 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">הודעות WhatsApp</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">הודעות WhatsApp</h1>
           <p className="text-gray-400 text-sm mt-1">{messages.length} הודעות נשלחו</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
         {/* Compose + History panel */}
         <div className="lg:col-span-2 space-y-5">
           {/* Compose */}

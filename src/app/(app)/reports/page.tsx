@@ -128,30 +128,30 @@ export default function ReportsPage() {
       ) : data ? (
         <div className="space-y-6">
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-5">
               <p className="text-xs text-gray-400 mb-1">הכנסות אתרים</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.siteIncome)}</p>
+              <p className="text-lg sm:text-xl font-bold text-green-600">{formatCurrency(data.summary.siteIncome)}</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-5">
               <p className="text-xs text-gray-400 mb-1">הוצאות אתרים</p>
-              <p className="text-xl font-bold text-red-500">{formatCurrency(data.summary.siteExpense)}</p>
+              <p className="text-lg sm:text-xl font-bold text-red-500">{formatCurrency(data.summary.siteExpense)}</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-5">
               <p className="text-xs text-gray-400 mb-1">עלויות ציוד</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.equipmentExpenseTotal + data.summary.maintenanceTotal + data.summary.insuranceTotal)}</p>
-              <div className="text-xs text-gray-400 mt-1 space-y-0.5">
+              <p className="text-lg sm:text-xl font-bold text-green-600">{formatCurrency(data.summary.equipmentExpenseTotal + data.summary.maintenanceTotal + data.summary.insuranceTotal)}</p>
+              <div className="text-xs text-gray-400 mt-1 space-y-0.5 hidden sm:block">
                 <div>דלק/הוצאות: {formatCurrency(data.summary.equipmentExpenseTotal)}</div>
                 <div>טיפולים: {formatCurrency(data.summary.maintenanceTotal)}</div>
                 <div>ביטוחים: {formatCurrency(data.summary.insuranceTotal)}</div>
               </div>
             </div>
-            <div className={`rounded-2xl border p-5 ${data.summary.netBalance >= 0 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"}`}>
+            <div className={`rounded-2xl border p-3 sm:p-5 ${data.summary.netBalance >= 0 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"}`}>
               <p className="text-xs text-gray-400 mb-1">רווח / הפסד נקי</p>
-              <p className={`text-xl font-bold ${data.summary.netBalance >= 0 ? "text-green-700" : "text-red-700"}`}>
+              <p className={`text-lg sm:text-xl font-bold ${data.summary.netBalance >= 0 ? "text-green-700" : "text-red-700"}`}>
                 {formatCurrency(data.summary.netBalance)}
               </p>
-              <p className="text-xs text-gray-400 mt-1">סה"כ הוצאות: {formatCurrency(data.summary.totalExpense)}</p>
+              <p className="text-xs text-gray-400 mt-1 hidden sm:block">סה"כ הוצאות: {formatCurrency(data.summary.totalExpense)}</p>
             </div>
           </div>
 

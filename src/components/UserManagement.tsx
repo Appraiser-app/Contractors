@@ -240,7 +240,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                       </span>
                       <button
                         onClick={() => setEditingRole(user.id)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                         title="שנה תפקיד"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +249,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="מחק משתמש"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
 
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">תפקיד</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                         {[
                           { value: "SECRETARY", label: "פקיד/ה", desc: "הוספת נתונים בלבד" },
                           { value: "ADMIN", label: "מנהל", desc: "הרשאות מלאות" },

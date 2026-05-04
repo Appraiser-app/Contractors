@@ -129,22 +129,80 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="sm:hidden space-y-2">
+        {transactions.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <p className="text-4xl mb-3">💸</p>
+            <p className="text-gray-400 text-sm">אין תנועות עדיין</p>
+          </div>
+        ) : transactions.map(t => {
+          const canApprove = t.approvalStatus === "PENDING" && t.createdById !== currentUserId;
+          return (
+            <div key={t.id} className={`bg-white rounded-2xl border p-4 ${t.approvalStatus === "PENDING" ? "border-yellow-200 bg-yellow-50/30" : "border-gray-100"}`}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}>
+                    <svg className={`w-4 h-4 ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={t.type === "INCOME" ? "M7 11l5-5m0 0l5 5m-5-5v12" : "M17 13l-5 5m0 0l-5-5m5 5V6"} />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm truncate">{t.description}</p>
+                    {t.category && <p className="text-xs text-gray-400">{t.category}</p>}
+                  </div>
+                </div>
+                <span className={`text-sm font-bold flex-shrink-0 ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`}>
+                  {t.type === "INCOME" ? "+" : "-"}{formatCurrency(t.amount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-400">{formatDate(t.date)}</span>
+                  <Link href={`/sites/${t.workSiteId}`} className="text-xs text-green-600 font-medium">{t.workSite?.name}</Link>
+                  {t.receiptUrl && <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400">📎</a>}
+                </div>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${approvalColor[t.approvalStatus]}`}>
+                  {approvalLabel[t.approvalStatus]}
+                </span>
+              </div>
+              {canApprove && (
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === t.id + "approve"}
+                    className="flex-1 text-xs bg-green-600 hover:bg-green-500 text-white font-semibold py-2 rounded-xl transition-colors disabled:opacity-50">
+                    {actionLoading === t.id + "approve" ? "..." : "✓ אשר"}
+                  </button>
+                  <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === t.id + "reject"}
+                    className="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-2 rounded-xl transition-colors disabled:opacity-50">
+                    {actionLoading === t.id + "reject" ? "..." : "✕ דחה"}
+                  </button>
+                </div>
+              )}
+              {t.approvalStatus === "PENDING" && t.createdById === currentUserId && (
+                <p className="text-xs text-yellow-600 font-medium mt-2 text-center">ממתין לאישור שותף</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {transactions.length === 0 ? (
           <div className="p-16 text-center">
             <p className="text-5xl mb-4">💸</p>
             <p className="text-gray-400">אין תנועות עדיין</p>
           </div>
         ) : (
-          <table className="w-full min-w-[700px]">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="bg-gray-50/70">
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">תאריך</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">תיאור</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">אתר</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סטטוס</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סכום</th>
-                <th className="px-5 py-3.5"></th>
+                <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">תאריך</th>
+                <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">תיאור</th>
+                <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">אתר</th>
+                <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סטטוס</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סכום</th>
+                <th className="px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -152,8 +210,8 @@ export default function TransactionsPage() {
                 const canApprove = t.approvalStatus === "PENDING" && t.createdById !== currentUserId;
                 return (
                   <tr key={t.id} className={`hover:bg-green-50/30 transition-colors ${t.approvalStatus === "PENDING" ? "bg-yellow-50/30" : ""}`}>
-                    <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{formatDate(t.date)}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4 text-sm text-gray-400 whitespace-nowrap">{formatDate(t.date)}</td>
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-2.5">
                         <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${t.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}>
                           <svg className={`w-3 h-3 ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,43 +220,35 @@ export default function TransactionsPage() {
                         </div>
                         <div>
                           <span className="text-sm text-gray-800 font-medium">{t.description}</span>
-                          {t.receiptUrl && (
-                            <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="mr-2 text-xs text-blue-400 hover:text-blue-600">📎</a>
-                          )}
+                          {t.receiptUrl && <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="mr-2 text-xs text-blue-400 hover:text-blue-600">📎</a>}
                           {t.category && <p className="text-xs text-gray-400">{t.category}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <Link href={`/sites/${t.workSiteId}`} className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">
                         {t.workSite?.name || ""}
                       </Link>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${approvalColor[t.approvalStatus]}`}>
                         {approvalLabel[t.approvalStatus]}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-left">
+                    <td className="px-4 py-4 text-left">
                       <span className={`text-sm font-bold ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`}>
                         {t.type === "INCOME" ? "+" : "-"}{formatCurrency(t.amount)}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       {canApprove && (
                         <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleApproval(t.id, "approve")}
-                            disabled={actionLoading === t.id + "approve"}
-                            className="text-xs bg-green-600 hover:bg-green-500 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                          >
+                          <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === t.id + "approve"}
+                            className="text-xs bg-green-600 hover:bg-green-500 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                             {actionLoading === t.id + "approve" ? "..." : "אשר"}
                           </button>
-                          <button
-                            onClick={() => handleApproval(t.id, "reject")}
-                            disabled={actionLoading === t.id + "reject"}
-                            className="text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                          >
+                          <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === t.id + "reject"}
+                            className="text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                             {actionLoading === t.id + "reject" ? "..." : "דחה"}
                           </button>
                         </div>

@@ -30,24 +30,24 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
   const isAdmin = profile?.role === "ADMIN";
 
   return (
-    <div className="p-8">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4 sm:mb-6">
         <div>
-          <div className="flex items-center gap-3 mb-1">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
             <Link href="/equipment" className="text-gray-400 hover:text-gray-600">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">{eq.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{eq.name}</h1>
             <span className={`text-xs font-medium px-2 py-1 rounded-lg ${statusColor[eq.status]}`}>{statusLabel[eq.status]}</span>
           </div>
-          <p className="text-gray-500 text-sm mr-8">
+          <p className="text-gray-500 text-sm sm:mr-8">
             {typeLabel[eq.type]}
             {eq.licensePlate && ` · ${eq.licensePlate}`}
             {eq.year && ` · ${eq.year}`}
           </p>
         </div>
         {isAdmin && (
-          <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm">
+          <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm flex-shrink-0 w-fit">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             עריכה
           </Link>
@@ -55,7 +55,7 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-xs text-gray-400 mb-1">תחזוקות</p>
           <p className="text-xl font-bold text-gray-800">{(eq.maintenance || []).length}</p>
