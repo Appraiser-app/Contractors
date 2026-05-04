@@ -321,8 +321,8 @@ export async function deleteTask(id: string) {
 
 // --- Notifications ---
 export async function getNotificationsForUser(userId: string) {
-  const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).orderBy("createdAt", "desc").limit(50).get();
-  return snap<Notification>(snapshot);
+  const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).get();
+  return snap<Notification>(snapshot).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
 }
 
 export async function getUnreadCount(userId: string) {
