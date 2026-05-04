@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
@@ -18,6 +18,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+
+  // Handle redirect result after returning from Google OAuth
+  useEffect(() => {
+    setGoogleLoading(true);
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result) { setGoogleLoading(false); return; }
+        const isNew = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+        if (isNew) {
+          await fetch("/api/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: result.user.displayName || result.user.email, email: result.user.email, password: crypto.randomUUID() }),
+          });
+        }
+        const idToken = await result.user.getIdToken();
+        const ok = await createSession(idToken);
+        if (ok) router.push("/dashboard");
+        else { setError("שגיאה בכניסה"); setGoogleLoading(false); }
+      })
+      .catch(() => { setError("שגיאה בהתחברות עם גוגל"); setGoogleLoading(false); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function switchMode(m: Mode) {
     setMode(m); setError(""); setSuccess(""); setPassword(""); setConfirmPassword("");
@@ -77,23 +99,10 @@ export default function LoginPage() {
     setError("");
     try {
       const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      // Create profile if new user
-      const isNew = cred.user.metadata.creationTime === cred.user.metadata.lastSignInTime;
-      if (isNew) {
-        await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: cred.user.displayName || cred.user.email, email: cred.user.email, password: crypto.randomUUID() }),
-        });
-      }
-      const idToken = await cred.user.getIdToken();
-      const ok = await createSession(idToken);
-      if (ok) router.push("/dashboard");
-      else setError("שגיאה בכניסה");
+      await signInWithRedirect(auth, provider);
+      // Page will redirect to Google, then back — result handled in useEffect above
     } catch {
       setError("שגיאה בהתחברות עם גוגל");
-    } finally {
       setGoogleLoading(false);
     }
   }
