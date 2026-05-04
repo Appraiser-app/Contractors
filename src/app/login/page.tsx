@@ -38,7 +38,17 @@ export default function LoginPage() {
         if (ok) router.push("/dashboard");
         else { setError("שגיאה בכניסה"); setGoogleLoading(false); }
       })
-      .catch(() => { setError("שגיאה בהתחברות עם גוגל"); setGoogleLoading(false); });
+      .catch((err: unknown) => {
+        const code = (err as { code?: string })?.code || "";
+        if (code === "auth/operation-not-allowed") {
+          setError("Google Login לא מופעל — יש להפעיל ב-Firebase Console");
+        } else if (code === "auth/unauthorized-domain") {
+          setError("הדומיין לא מורשה ב-Firebase Console");
+        } else {
+          setError(`שגיאה: ${code || "לא ידועה"}`);
+        }
+        setGoogleLoading(false);
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function switchMode(m: Mode) {
@@ -101,8 +111,15 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       await signInWithRedirect(auth, provider);
       // Page will redirect to Google, then back — result handled in useEffect above
-    } catch {
-      setError("שגיאה בהתחברות עם גוגל");
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code || "";
+      if (code === "auth/operation-not-allowed") {
+        setError("Google Login לא מופעל — יש להפעיל אותו ב-Firebase Console");
+      } else if (code === "auth/unauthorized-domain") {
+        setError("הדומיין לא מורשה ב-Firebase Console");
+      } else {
+        setError(`שגיאה: ${code || "לא ידועה"}`);
+      }
       setGoogleLoading(false);
     }
   }
