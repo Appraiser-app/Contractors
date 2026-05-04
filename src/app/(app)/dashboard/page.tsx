@@ -44,9 +44,9 @@ export default async function DashboardPage() {
   );
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <p className="text-green-600 text-sm font-medium mb-1">
           ברוך הבא{profile?.name ? `, ${profile.name}` : ""} 👋
         </p>
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-5 text-white shadow-lg shadow-green-200">
           <p className="text-green-100 text-xs font-medium mb-3">יתרה כוללת</p>
           <p className="text-2xl font-bold leading-none">{formatCurrency(totalBalance)}</p>

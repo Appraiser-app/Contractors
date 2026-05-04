@@ -39,8 +39,8 @@ export default async function DocumentsPage() {
   const expiringSoon = documents.filter(d => d.expiryDate && isExpiringSoon(d.expiryDate));
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-6 sm:mb-8 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">ניהול מסמכים</h1>
           <p className="text-gray-500 text-sm mt-1">{documents.length} מסמכים בסך הכל</p>
@@ -83,8 +83,8 @@ export default async function DocumentsPage() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-right px-5 py-3 text-xs font-medium text-gray-400 uppercase">מסמך</th>

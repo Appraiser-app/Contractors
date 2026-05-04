@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Profile = {
@@ -99,18 +100,14 @@ const adminItems = [
   },
 ];
 
-export default function Sidebar({ profile }: { profile: Profile }) {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
-
+function NavContent({ profile, pathname, onClose, handleLogout }: {
+  profile: Profile;
+  pathname: string;
+  onClose?: () => void;
+  handleLogout: () => void;
+}) {
   return (
-    <aside className="w-60 bg-stone-950 min-h-screen flex flex-col border-l border-stone-800/50">
+    <>
       {/* Logo */}
       <div className="px-5 py-5 border-b border-stone-800/60">
         <div className="flex items-center gap-3">
@@ -123,17 +120,25 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             <p className="text-white font-bold text-sm leading-tight">קבלן עפר</p>
             <p className="text-stone-500 text-xs">שגיא ודור</p>
           </div>
+          {onClose && (
+            <button onClick={onClose} className="mr-auto text-stone-500 hover:text-white p-1">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "bg-green-600 text-white shadow-md shadow-green-900/30"
@@ -157,6 +162,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     isActive
                       ? "bg-green-600 text-white shadow-md shadow-green-900/30"
@@ -182,9 +188,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-semibold truncate">{profile?.name || "משתמש"}</p>
-            <p className="text-stone-500 text-[10px]">
-              {profile?.role === "ADMIN" ? "מנהל" : "פקיד"}
-            </p>
+            <p className="text-stone-500 text-[10px]">{profile?.role === "ADMIN" ? "מנהל" : "פקיד"}</p>
           </div>
         </div>
         <button
@@ -197,6 +201,77 @@ export default function Sidebar({ profile }: { profile: Profile }) {
           התנתק
         </button>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export default function Sidebar({ profile }: { profile: Profile }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // Prevent body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="lg:hidden fixed top-0 right-0 left-0 z-40 bg-stone-950 border-b border-stone-800/60 flex items-center gap-3 px-4 py-3">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="text-stone-400 hover:text-white p-1 -mr-1"
+          aria-label="פתח תפריט"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <span className="text-white font-bold text-sm">קבלן עפר</span>
+      </div>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <div className={`lg:hidden fixed top-0 right-0 h-full w-72 bg-stone-950 z-50 flex flex-col border-l border-stone-800/50 transform transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <NavContent
+          profile={profile}
+          pathname={pathname}
+          onClose={() => setMobileOpen(false)}
+          handleLogout={handleLogout}
+        />
+      </div>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-60 bg-stone-950 min-h-screen flex-col border-l border-stone-800/50 flex-shrink-0">
+        <NavContent
+          profile={profile}
+          pathname={pathname}
+          handleLogout={handleLogout}
+        />
+      </aside>
+    </>
   );
 }

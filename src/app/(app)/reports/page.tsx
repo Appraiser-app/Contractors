@@ -90,8 +90,8 @@ export default function ReportsPage() {
   const maxCat = Math.max(...siteCatEntries.map(e => e[1]), ...equipCatEntries.map(e => e[1]), 1);
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-4 sm:mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">דוחות והוצאות</h1>
           <p className="text-gray-400 text-sm mt-0.5">{formatDate(from)} — {formatDate(to)}</p>

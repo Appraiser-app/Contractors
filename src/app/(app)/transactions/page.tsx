@@ -19,13 +19,13 @@ export default async function TransactionsPage() {
   const balance = totalIncome - totalExpense;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">הכנסות והוצאות</h1>
         <p className="text-gray-400 text-sm mt-1">{transactions.length} תנועות בסך הכל</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
@@ -61,7 +61,7 @@ export default async function TransactionsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden overflow-x-auto">
         {transactions.length === 0 ? (
           <div className="p-16 text-center">
             <p className="text-5xl mb-4">💸</p>

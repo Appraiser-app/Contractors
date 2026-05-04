@@ -20,8 +20,8 @@ export default async function SitesPage() {
   const completedSites = sites.filter(s => s.status === "COMPLETED");
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-6 sm:mb-8 gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">אתרי עבודה</h1>
           <div className="flex items-center gap-3 mt-2">
