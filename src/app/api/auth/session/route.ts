@@ -19,7 +19,9 @@ export async function POST(req: Request) {
       sameSite: "lax",
     });
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Session creation failed:", msg);
+    return NextResponse.json({ error: "Invalid token", detail: msg }, { status: 401 });
   }
 }

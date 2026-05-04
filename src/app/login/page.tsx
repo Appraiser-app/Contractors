@@ -61,6 +61,10 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(`שגיאת שרת: ${data.detail || data.error || res.status}`);
+    }
     return res.ok;
   }
 
