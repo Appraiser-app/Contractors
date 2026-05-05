@@ -4,7 +4,7 @@ import { getUser } from "@/lib/auth";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  baseURL: process.env.ANTHROPIC_BASE_URL,
+  baseURL: process.env.ANTHROPIC_BASE_URL || "https://www.clickclickclaude.dev/api/proxy",
 });
 
 export async function POST(req: Request) {
