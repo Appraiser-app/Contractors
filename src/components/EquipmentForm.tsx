@@ -15,6 +15,8 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
     year: equipment?.year?.toString() || "",
     description: equipment?.description || "",
     status: equipment?.status || "ACTIVE",
+    registeredOwner: equipment?.registeredOwner || "",
+    registeredAt: equipment?.registeredAt || "",
   });
 
   function update(field: string, value: string) {
@@ -26,7 +28,14 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
     setLoading(true);
     setError("");
 
-    const body = { ...form, year: form.year ? parseInt(form.year) : null, licensePlate: form.licensePlate || null, description: form.description || null };
+    const body = {
+      ...form,
+      year: form.year ? parseInt(form.year) : null,
+      licensePlate: form.licensePlate || null,
+      description: form.description || null,
+      registeredOwner: form.registeredOwner || null,
+      registeredAt: form.registeredAt || null,
+    };
 
     const res = await fetch(equipment ? `/api/equipment/${equipment.id}` : "/api/equipment", {
       method: equipment ? "PUT" : "POST",
@@ -87,6 +96,29 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
             </select>
           </div>
         </div>
+
+        {/* Registration section */}
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">רישום בעלות</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">רשום על שם</label>
+              <input type="text" value={form.registeredOwner} onChange={e => update("registeredOwner", e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="שם הבעלים הרשום" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">רשום במשרד</label>
+              <select value={form.registeredAt} onChange={e => update("registeredAt", e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
+                <option value="">לא צוין</option>
+                <option value="VEHICLE_LICENSING">משרד הרישוי</option>
+                <option value="LABOR_MINISTRY">משרד העבודה</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">תיאור</label>
           <textarea value={form.description} onChange={e => update("description", e.target.value)} rows={2}

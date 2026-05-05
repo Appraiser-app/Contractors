@@ -405,27 +405,67 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
 }
 
 // --- Documents Tab ---
+const DOC_TYPE_LABELS: Record<string, string> = {
+  LICENSE: "רישיון רכב",
+  MANDATORY_INSURANCE: "ביטוח חובה",
+  COMPREHENSIVE_INSURANCE: "ביטוח מקיף",
+  ITURAN: "איתוראן",
+  OWNERSHIP_TRANSFER: "אישור העברת בעלות",
+  INSURANCE: "ביטוח",
+  PERMIT: "אישור",
+  CONTRACT: "חוזה",
+  RECEIPT: "קבלה",
+  OTHER: "אחר",
+};
+
+const DOC_TYPE_COLORS: Record<string, string> = {
+  LICENSE: "bg-blue-100 text-blue-700",
+  MANDATORY_INSURANCE: "bg-orange-100 text-orange-700",
+  COMPREHENSIVE_INSURANCE: "bg-purple-100 text-purple-700",
+  ITURAN: "bg-cyan-100 text-cyan-700",
+  OWNERSHIP_TRANSFER: "bg-green-100 text-green-700",
+  INSURANCE: "bg-orange-100 text-orange-700",
+  PERMIT: "bg-yellow-100 text-yellow-700",
+  CONTRACT: "bg-gray-100 text-gray-700",
+  RECEIPT: "bg-gray-100 text-gray-600",
+  OTHER: "bg-gray-100 text-gray-600",
+};
+
 function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: boolean }) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
   const [form, setForm] = useState({ title: "", type: "LICENSE" as Document["type"], expiryDate: "", notes: "" });
   const records = equipment.documents || [];
-
-  const docTypeLabel: Record<string, string> = {
-    LICENSE: "רישיון", INSURANCE: "ביטוח", PERMIT: "אישור", CONTRACT: "חוזה", RECEIPT: "קבלה", OTHER: "אחר"
-  };
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    let fileUrl: string | null = null;
+
+    if (docFile) {
+      setUploading(true);
+      try {
+        fileUrl = await uploadReceipt(docFile, "equipment-expenses");
+      } catch {
+        setLoading(false);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
     const res = await fetch("/api/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, title: form.title, type: form.type, expiryDate: form.expiryDate || null, notes: form.notes || null, fileUrl: null }),
+      body: JSON.stringify({ equipmentId: equipment.id, title: form.title, type: form.type, expiryDate: form.expiryDate || null, notes: form.notes || null, fileUrl }),
     });
     if (res.ok) {
       setForm({ title: "", type: "LICENSE", expiryDate: "", notes: "" });
+      setDocFile(null);
       setShowForm(false);
       router.refresh();
     }
@@ -438,8 +478,16 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     router.refresh();
   }
 
+  // Auto-fill title when type changes
+  function handleTypeChange(type: string) {
+    setForm(p => ({ ...p, type: type as Document["type"], title: p.title || DOC_TYPE_LABELS[type] || "" }));
+  }
+
   return (
     <div>
+      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
+        onChange={e => setDocFile(e.target.files?.[0] || null)} />
+
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">מסמכים ({records.length})</h3>
         <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
@@ -451,16 +499,18 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
       {showForm && (
         <form onSubmit={handleAdd} className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">שם המסמך *</label>
-              <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" placeholder="רישיון רכב" />
-            </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">סוג</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as Document["type"] }))}
+              <label className="block text-xs font-medium text-gray-600 mb-1">סוג מסמך *</label>
+              <select value={form.type} onChange={e => handleTypeChange(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
-                {Object.entries(docTypeLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                <option value="LICENSE">רישיון רכב</option>
+                <option value="MANDATORY_INSURANCE">ביטוח חובה</option>
+                <option value="COMPREHENSIVE_INSURANCE">ביטוח מקיף</option>
+                <option value="ITURAN">איתוראן</option>
+                <option value="OWNERSHIP_TRANSFER">אישור העברת בעלות</option>
+                <option value="PERMIT">אישור</option>
+                <option value="CONTRACT">חוזה</option>
+                <option value="OTHER">אחר</option>
               </select>
             </div>
             <div>
@@ -469,13 +519,41 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" dir="ltr" />
             </div>
             <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">שם / תיאור</label>
+              <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" placeholder="תיאור המסמך" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">העלאת קובץ (PDF, תמונה)</label>
+              {docFile ? (
+                <div className="flex items-center gap-2 border border-green-200 bg-green-50 rounded-lg px-3 py-2">
+                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs text-green-700 flex-1 truncate">{docFile.name}</span>
+                  <button type="button" onClick={() => setDocFile(null)} className="text-xs text-green-400 hover:text-red-500">הסר</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-2 w-full border border-dashed border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-400 hover:border-purple-400 hover:text-purple-600 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  לחץ לצירוף קובץ
+                </button>
+              )}
+            </div>
+            <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
               <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" placeholder="מספר פוליסה, הערות..." />
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={loading} className="bg-purple-500 hover:bg-purple-400 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
+            <button type="submit" disabled={loading}
+              className="bg-purple-500 hover:bg-purple-400 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+              {uploading ? "מעלה קובץ..." : loading ? "שומר..." : "שמור"}
+            </button>
             <button type="button" onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
           </div>
         </form>
@@ -489,21 +567,32 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
             const expired = doc.expiryDate && isExpired(doc.expiryDate);
             const expiring = doc.expiryDate && !expired && isExpiringSoon(doc.expiryDate);
             return (
-              <div key={doc.id} className={`bg-white border rounded-xl p-4 flex items-start justify-between ${expired ? "border-red-200" : expiring ? "border-yellow-200" : "border-gray-100"}`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">{docTypeLabel[doc.type]}</span>
-                    <p className="font-medium text-gray-800 text-sm">{doc.title}</p>
-                    {expired && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">פג תוקף</span>}
-                    {expiring && <span className="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded">פג בקרוב</span>}
+              <div key={doc.id} className={`bg-white border rounded-xl p-4 flex items-start justify-between gap-3 ${expired ? "border-red-200" : expiring ? "border-yellow-200" : "border-gray-100"}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${DOC_TYPE_COLORS[doc.type] || "bg-gray-100 text-gray-600"}`}>
+                      {DOC_TYPE_LABELS[doc.type] || doc.type}
+                    </span>
+                    <p className="font-medium text-gray-800 text-sm truncate">{doc.title}</p>
+                    {expired && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded flex-shrink-0">פג תוקף</span>}
+                    {expiring && <span className="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded flex-shrink-0">פג בקרוב</span>}
                   </div>
-                  <div className="flex gap-3 text-xs text-gray-400">
+                  <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
                     {doc.expiryDate && <span>תפוגה: {formatDate(doc.expiryDate)}</span>}
                     {doc.notes && <span>{doc.notes}</span>}
+                    {doc.fileUrl && (
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-0.5 text-blue-500 hover:text-blue-700 font-medium">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        פתח קובץ
+                      </a>
+                    )}
                   </div>
                 </div>
                 {isAdmin && (
-                  <button onClick={() => handleDelete(doc.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                  <button onClick={() => handleDelete(doc.id)} className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 )}

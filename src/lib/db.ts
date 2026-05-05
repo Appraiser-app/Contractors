@@ -382,6 +382,8 @@ export type Equipment = {
   id: string; name: string; type: "TRUCK" | "MINI_EXCAVATOR" | "BOBCAT" | "OTHER";
   licensePlate: string | null; year: number | null; description: string | null;
   status: "ACTIVE" | "IN_REPAIR" | "INACTIVE";
+  registeredOwner: string | null;
+  registeredAt: "VEHICLE_LICENSING" | "LABOR_MINISTRY" | null;
   createdAt: string; updatedAt: string;
   maintenance?: MaintenanceRecord[];
   insurances?: Insurance[];
@@ -411,7 +413,7 @@ export type EquipmentExpense = {
 
 export type Document = {
   id: string; title: string;
-  type: "LICENSE" | "INSURANCE" | "PERMIT" | "CONTRACT" | "RECEIPT" | "OTHER";
+  type: "LICENSE" | "INSURANCE" | "MANDATORY_INSURANCE" | "COMPREHENSIVE_INSURANCE" | "ITURAN" | "OWNERSHIP_TRANSFER" | "PERMIT" | "CONTRACT" | "RECEIPT" | "OTHER";
   fileUrl: string | null; expiryDate: string | null; notes: string | null;
   equipmentId: string | null;
   createdAt: string; updatedAt: string;

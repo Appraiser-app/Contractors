@@ -45,6 +45,17 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
             {eq.licensePlate && ` · ${eq.licensePlate}`}
             {eq.year && ` · ${eq.year}`}
           </p>
+          {(eq.registeredOwner || eq.registeredAt) && (
+            <div className="flex items-center gap-1.5 mt-1 sm:mr-8">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-xs text-gray-400">
+                רשום על שם{eq.registeredOwner ? ` ${eq.registeredOwner}` : ""}
+                {eq.registeredAt && ` · ${eq.registeredAt === "VEHICLE_LICENSING" ? "משרד הרישוי" : "משרד העבודה"}`}
+              </span>
+            </div>
+          )}
         </div>
         {isAdmin && (
           <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm flex-shrink-0 w-fit">
