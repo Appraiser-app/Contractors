@@ -439,6 +439,21 @@ export type Notification = {
   isRead: boolean; createdAt: string;
 };
 
+export type ExpenseEntity = "דור" | "שגיא" | "חברה של שגיא" | "חברה של דור";
+
+export type Expense = {
+  id: string;
+  entity: ExpenseEntity;
+  amount: number;
+  description: string;
+  category: string | null;
+  date: string;
+  receiptUrl: string | null;
+  notes: string | null;
+  createdById: string | null;
+  createdAt: string;
+};
+
 export type Invitation = {
   id: string; email: string; name: string;
   role: "ADMIN" | "SECRETARY";
@@ -446,6 +461,24 @@ export type Invitation = {
   invitedById: string;
   createdAt: string; acceptedAt: string | null;
 };
+
+// --- Expenses ---
+export async function getAllExpenses() {
+  const snapshot = await adminDb.collection("expenses").orderBy("date", "desc").get();
+  return snap<Expense>(snapshot);
+}
+
+export async function createExpense(data: Omit<Expense, "id" | "createdAt">) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now };
+  await adminDb.collection("expenses").doc(id).set(rec);
+  return rec as Expense;
+}
+
+export async function deleteExpense(id: string) {
+  await adminDb.collection("expenses").doc(id).delete();
+}
 
 // --- Invitations ---
 export async function createInvitation(data: Omit<Invitation, "id" | "createdAt" | "acceptedAt" | "status">) {
