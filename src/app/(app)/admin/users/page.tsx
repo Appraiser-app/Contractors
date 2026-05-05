@@ -3,7 +3,7 @@ import { getAllProfiles } from "@/lib/db";
 import UserManagement from "@/components/UserManagement";
 
 export default async function UsersPage() {
-  await requireAdmin();
+  const currentUser = await requireAdmin();
   const users = await getAllProfiles();
 
   return (
@@ -12,7 +12,7 @@ export default async function UsersPage() {
         <h1 className="text-2xl font-bold text-gray-900">ניהול משתמשים</h1>
         <p className="text-gray-500 text-sm mt-1">הוסף משתמשים וקבע הרשאות</p>
       </div>
-      <UserManagement users={users} />
+      <UserManagement users={users} currentUserId={currentUser.id} />
     </div>
   );
 }

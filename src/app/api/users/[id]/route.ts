@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateProfileRole, deleteProfile, getProfileById } from "@/lib/db";
+import { updateProfileRole, updateProfileActive, deleteProfile, getProfileById } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 import { adminAuth } from "@/lib/firebase-admin";
 
@@ -18,10 +18,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "לא ניתן לשנות הרשאות המנהל הראשי" }, { status: 403 });
   }
 
-  const { role } = await req.json();
+  const body = await req.json();
 
   try {
-    await updateProfileRole(id, role === "ADMIN" ? "ADMIN" : "SECRETARY");
+    if ("isActive" in body) {
+      await updateProfileActive(id, Boolean(body.isActive));
+    } else {
+      const { role } = body;
+      await updateProfileRole(id, role === "ADMIN" ? "ADMIN" : "SECRETARY");
+    }
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

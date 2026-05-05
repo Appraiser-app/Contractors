@@ -32,6 +32,10 @@ export async function updateProfileRole(id: string, role: "ADMIN" | "SECRETARY")
   await adminDb.collection("profiles").doc(id).update({ role, updatedAt: new Date().toISOString() });
 }
 
+export async function updateProfileActive(id: string, isActive: boolean) {
+  await adminDb.collection("profiles").doc(id).update({ isActive, updatedAt: new Date().toISOString() });
+}
+
 export async function updateProfileName(id: string, name: string) {
   await adminDb.collection("profiles").doc(id).update({ name, updatedAt: new Date().toISOString() });
 }
@@ -369,6 +373,7 @@ export async function markAllNotificationsRead(userId: string) {
 export type Profile = {
   id: string; email: string; name: string; role: "ADMIN" | "SECRETARY";
   isSuperAdmin: boolean | null;
+  isActive: boolean | null;
   googleRefreshToken: string | null;
   createdAt: string; updatedAt: string;
 };

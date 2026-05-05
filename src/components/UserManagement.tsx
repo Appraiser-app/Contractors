@@ -9,6 +9,7 @@ type User = {
   name: string;
   role: string;
   isSuperAdmin?: boolean | null;
+  isActive?: boolean | null;
   createdAt: Date | string;
 };
 
@@ -28,7 +29,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  ADMIN: "bg-green-100 text-green-700",
+  ADMIN: "bg-purple-100 text-purple-700",
   SECRETARY: "bg-blue-100 text-blue-700",
 };
 
@@ -74,8 +75,15 @@ function timeAgo(dateStr: string) {
   return `לפני ${d} ${d === 1 ? "יום" : "ימים"}`;
 }
 
-export default function UserManagement({ users: initialUsers }: { users: User[] }) {
+export default function UserManagement({
+  users: initialUsers,
+  currentUserId,
+}: {
+  users: User[];
+  currentUserId: string;
+}) {
   const router = useRouter();
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [tab, setTab] = useState<"users" | "invitations">("users");
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", name: "", role: "SECRETARY" });
@@ -84,7 +92,10 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[] | null>(null);
   const [invLoading, setInvLoading] = useState(false);
-  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [pendingRoles, setPendingRoles] = useState<Record<string, string>>({});
+  const [togglingActive, setTogglingActive] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [resendLinks, setResendLinks] = useState<Record<string, string>>({});
 
   async function loadInvitations() {
@@ -99,9 +110,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
 
   function handleTabChange(t: "users" | "invitations") {
     setTab(t);
-    if (t === "invitations" && invitations === null) {
-      loadInvitations();
-    }
+    if (t === "invitations" && invitations === null) loadInvitations();
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -140,30 +149,51 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
     const res = await fetch(`/api/invitations/${invId}`, { method: "POST" });
     if (res.ok) {
       const data = await res.json();
-      setResendLinks(prev => ({ ...prev, [invId]: data.inviteLink }));
+      setResendLinks((prev) => ({ ...prev, [invId]: data.inviteLink }));
     }
   }
 
-  async function handleRoleChange(userId: string, newRole: string) {
+  async function handleSaveRole(userId: string) {
+    const newRole = pendingRoles[userId];
+    if (!newRole) return;
+    setSavingRole(userId);
     const res = await fetch(`/api/users/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: newRole }),
     });
     if (res.ok) {
-      setEditingRole(null);
-      router.refresh();
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+      setPendingRoles((prev) => { const n = { ...prev }; delete n[userId]; return n; });
     }
+    setSavingRole(null);
+  }
+
+  async function handleToggleActive(userId: string, current: boolean) {
+    setTogglingActive(userId);
+    const res = await fetch(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !current }),
+    });
+    if (res.ok) {
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isActive: !current } : u)));
+    }
+    setTogglingActive(null);
   }
 
   async function handleDelete(userId: string) {
     if (!confirm("האם למחוק את המשתמש?")) return;
+    setDeletingId(userId);
     const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    }
+    setDeletingId(null);
   }
 
-  const pendingInvitations = invitations?.filter(i => i.status === "PENDING") ?? [];
-  const acceptedInvitations = invitations?.filter(i => i.status === "ACCEPTED") ?? [];
+  const pendingInvitations = invitations?.filter((i) => i.status === "PENDING") ?? [];
+  const acceptedInvitations = invitations?.filter((i) => i.status === "ACCEPTED") ?? [];
 
   return (
     <div className="space-y-6">
@@ -173,7 +203,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
           onClick={() => handleTabChange("users")}
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "users" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
         >
-          משתמשים פעילים ({initialUsers.length})
+          משתמשים פעילים ({users.length})
         </button>
         <button
           onClick={() => handleTabChange("invitations")}
@@ -188,13 +218,13 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
         </button>
       </div>
 
-      {/* Users tab */}
+      {/* Users tab — table layout */}
       {tab === "users" && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-50 flex items-center justify-between">
-            <h2 className="font-bold text-gray-900">משתמשים פעילים</h2>
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+            <h2 className="font-bold text-gray-900 text-sm">משתמשים ({users.length})</h2>
             <button
-              onClick={() => { setTab("invitations"); handleTabChange("invitations"); setShowInvite(true); }}
+              onClick={() => { handleTabChange("invitations"); setShowInvite(true); }}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-3 py-2 rounded-xl text-sm transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,73 +234,129 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
             </button>
           </div>
 
-          <div className="divide-y divide-gray-50">
-            {initialUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-700 font-bold text-sm">{user.name.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{user.name}</p>
-                    <p className="text-gray-400 text-xs" dir="ltr">{user.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {user.isSuperAdmin ? (
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1 text-xs font-semibold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                        מנהל ראשי
-                      </span>
-                    </div>
-                  ) : editingRole === user.id ? (
-                    <div className="flex gap-2">
-                      <select
-                        defaultValue={user.role}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="border border-gray-200 rounded-xl px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
-                      >
-                        <option value="SECRETARY">פקיד/ה</option>
-                        <option value="ADMIN">מנהל</option>
-                      </select>
-                      <button
-                        onClick={() => setEditingRole(null)}
-                        className="text-gray-400 hover:text-gray-600 text-xs"
-                      >
-                        ביטול
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${roleColors[user.role]}`}>
-                        {roleLabels[user.role]}
-                      </span>
-                      <button
-                        onClick={() => setEditingRole(user.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="שנה תפקיד"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="מחק משתמש"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="text-right text-xs font-medium text-gray-500 px-5 py-3">שם</th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">אימייל</th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">תפקיד</th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">סטטוס</th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">פעולות</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {users.map((user) => {
+                  const isActive = user.isActive !== false; // treat null/undefined as active
+                  const pendingRole = pendingRoles[user.id] ?? user.role;
+                  const isMe = user.id === currentUserId;
+                  const isSA = user.isSuperAdmin;
+
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      {/* Name */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-green-700 font-bold text-sm">{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                            {isMe && (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">אתה</span>
+                            )}
+                            {isSA && (
+                              <span className="flex items-center gap-0.5 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                </svg>
+                                ראשי
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Email */}
+                      <td className="px-4 py-3.5 text-sm text-gray-500" dir="ltr">
+                        {user.email}
+                      </td>
+
+                      {/* Role */}
+                      <td className="px-4 py-3.5">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColors[user.role] ?? "bg-gray-100 text-gray-600"}`}>
+                          {roleLabels[user.role] ?? user.role}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3.5">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                          {isActive ? "פעיל" : "מושבת"}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3.5">
+                        {isSA ? (
+                          <span className="text-xs text-gray-300">—</span>
+                        ) : isMe ? (
+                          <span className="text-xs text-gray-300">—</span>
+                        ) : (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Role selector */}
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={pendingRole}
+                                onChange={(e) => setPendingRoles((prev) => ({ ...prev, [user.id]: e.target.value }))}
+                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-green-400"
+                              >
+                                <option value="SECRETARY">פקיד/ה</option>
+                                <option value="ADMIN">מנהל</option>
+                              </select>
+                              {pendingRoles[user.id] && pendingRoles[user.id] !== user.role && (
+                                <button
+                                  onClick={() => handleSaveRole(user.id)}
+                                  disabled={savingRole === user.id}
+                                  className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                >
+                                  {savingRole === user.id ? "..." : "שמור"}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Toggle active */}
+                            <button
+                              onClick={() => handleToggleActive(user.id, isActive)}
+                              disabled={togglingActive === user.id}
+                              className={`text-xs border px-2 py-1 rounded-lg transition-colors disabled:opacity-50 ${
+                                isActive
+                                  ? "text-red-500 hover:text-red-700 border-red-200 hover:bg-red-50"
+                                  : "text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50"
+                              }`}
+                            >
+                              {togglingActive === user.id ? "..." : isActive ? "השבת" : "הפעל"}
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              onClick={() => handleDelete(user.id)}
+                              disabled={deletingId === user.id}
+                              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="מחק משתמש"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -300,7 +386,6 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
             {showInvite && (
               <div className="px-5 pb-5 border-t border-gray-50">
                 {inviteLink ? (
-                  /* Success state — show invite link */
                   <div className="pt-4 space-y-4">
                     <div className="flex items-center gap-2.5 p-3 bg-green-50 rounded-xl border border-green-100">
                       <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -313,7 +398,6 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                         <p className="text-xs text-green-600">שלח את הקישור הזה למשתמש — לאחר לחיצה הם יגדירו סיסמה ויוכלו להיכנס</p>
                       </div>
                     </div>
-
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-gray-500">קישור הזמנה:</p>
                       <div className="flex items-center gap-2">
@@ -324,7 +408,6 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                       </div>
                       <p className="text-[11px] text-gray-400">הקישור תקף ל-24 שעות</p>
                     </div>
-
                     <button
                       onClick={() => { setInviteLink(null); setShowInvite(false); }}
                       className="w-full border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium px-4 py-2.5 rounded-xl text-sm transition-colors"
@@ -333,7 +416,6 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                     </button>
                   </div>
                 ) : (
-                  /* Invite form */
                   <form onSubmit={handleInvite} className="pt-4 space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -360,14 +442,13 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">תפקיד</label>
-                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {[
                           { value: "SECRETARY", label: "פקיד/ה", desc: "הוספת נתונים בלבד" },
                           { value: "ADMIN", label: "מנהל", desc: "הרשאות מלאות" },
-                        ].map(opt => (
+                        ].map((opt) => (
                           <label
                             key={opt.value}
                             className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${inviteForm.role === opt.value ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"}`}
@@ -377,7 +458,7 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                               name="role"
                               value={opt.value}
                               checked={inviteForm.role === opt.value}
-                              onChange={(e) => setInviteForm(p => ({ ...p, role: e.target.value }))}
+                              onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value }))}
                               className="mt-0.5 accent-green-600"
                             />
                             <div>
@@ -388,11 +469,9 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                         ))}
                       </div>
                     </div>
-
                     {inviteError && (
                       <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{inviteError}</p>
                     )}
-
                     <div className="flex gap-2 pt-1">
                       <button
                         type="submit"
@@ -481,8 +560,6 @@ export default function UserManagement({ users: initialUsers }: { users: User[] 
                         </button>
                       </div>
                     </div>
-
-                    {/* Resend link area */}
                     {resendLinks[inv.id] ? (
                       <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5">
                         <p className="text-xs text-gray-500 font-mono truncate flex-1" dir="ltr">{resendLinks[inv.id]}</p>
