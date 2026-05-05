@@ -32,6 +32,24 @@ export async function updateProfileRole(id: string, role: "ADMIN" | "SECRETARY")
   await adminDb.collection("profiles").doc(id).update({ role, updatedAt: new Date().toISOString() });
 }
 
+export async function updateProfileName(id: string, name: string) {
+  await adminDb.collection("profiles").doc(id).update({ name, updatedAt: new Date().toISOString() });
+}
+
+export async function getSuperAdmin() {
+  const snapshot = await adminDb.collection("profiles").where("isSuperAdmin", "==", true).limit(1).get();
+  return snapshot.empty ? null : docToObj<Profile>(snapshot.docs[0]);
+}
+
+export async function setSuperAdmin(id: string) {
+  // Clear any existing super admin first
+  const existing = await adminDb.collection("profiles").where("isSuperAdmin", "==", true).get();
+  const batch = adminDb.batch();
+  existing.docs.forEach(doc => batch.update(doc.ref, { isSuperAdmin: false }));
+  batch.update(adminDb.collection("profiles").doc(id), { isSuperAdmin: true, role: "ADMIN", updatedAt: new Date().toISOString() });
+  await batch.commit();
+}
+
 export async function saveGoogleRefreshToken(id: string, token: string) {
   await adminDb.collection("profiles").doc(id).update({ googleRefreshToken: token, updatedAt: new Date().toISOString() });
 }
@@ -350,6 +368,7 @@ export async function markAllNotificationsRead(userId: string) {
 // --- Types ---
 export type Profile = {
   id: string; email: string; name: string; role: "ADMIN" | "SECRETARY";
+  isSuperAdmin: boolean | null;
   googleRefreshToken: string | null;
   createdAt: string; updatedAt: string;
 };

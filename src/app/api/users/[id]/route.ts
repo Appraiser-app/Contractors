@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateProfileRole, deleteProfile } from "@/lib/db";
+import { updateProfileRole, deleteProfile, getProfileById } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 import { adminAuth } from "@/lib/firebase-admin";
 
@@ -11,6 +11,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!profile || profile.role !== "ADMIN") return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
   const { id } = await params;
+
+  // Protect super admin from demotion (only super admin can demote themselves)
+  const target = await getProfileById(id);
+  if (target?.isSuperAdmin && !profile.isSuperAdmin) {
+    return NextResponse.json({ error: "לא ניתן לשנות הרשאות המנהל הראשי" }, { status: 403 });
+  }
+
   const { role } = await req.json();
 
   try {
@@ -29,6 +36,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!profile || profile.role !== "ADMIN") return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
   const { id } = await params;
+
+  // Protect super admin from deletion
+  const target = await getProfileById(id);
+  if (target?.isSuperAdmin) {
+    return NextResponse.json({ error: "לא ניתן למחוק את המנהל הראשי" }, { status: 403 });
+  }
 
   try {
     await adminAuth.deleteUser(id);

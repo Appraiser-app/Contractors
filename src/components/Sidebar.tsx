@@ -341,17 +341,35 @@ function NavContent({ profile, pathname, onClose, handleLogout }: {
 
       {/* User info + logout */}
       <div className="px-3 py-3 border-t border-stone-800/60">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-stone-800/70 transition-colors mb-1">
-          <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">
-              {profile?.name?.charAt(0)?.toUpperCase() || "?"}
-            </span>
+        <Link
+          href="/profile"
+          onClick={onClose}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-stone-800/70 transition-colors mb-1 group w-full"
+        >
+          <div className="relative w-7 h-7 flex-shrink-0">
+            <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs font-bold">
+                {profile?.name?.charAt(0)?.toUpperCase() || "?"}
+              </span>
+            </div>
+            {(profile as { isSuperAdmin?: boolean | null })?.isSuperAdmin && (
+              <div className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-400 rounded-full flex items-center justify-center">
+                <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-semibold truncate">{profile?.name || "משתמש"}</p>
-            <p className="text-stone-500 text-[10px]">{profile?.role === "ADMIN" ? "מנהל" : "פקיד"}</p>
+            <p className="text-stone-500 text-[10px]">
+              {(profile as { isSuperAdmin?: boolean | null })?.isSuperAdmin ? "מנהל ראשי" : profile?.role === "ADMIN" ? "מנהל" : "פקיד"}
+            </p>
           </div>
-        </div>
+          <svg className="w-3.5 h-3.5 text-stone-600 group-hover:text-stone-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-stone-500 hover:text-red-400 hover:bg-stone-800/70 text-xs font-medium transition-all"
