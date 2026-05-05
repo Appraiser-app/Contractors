@@ -162,18 +162,28 @@ export async function rejectTransaction(id: string, approverId: string) {
 
 // --- Equipment ---
 async function getEquipmentRelated(equipmentIds: string[]) {
-  if (equipmentIds.length === 0) return { maintenance: [], insurances: [], expenses: [], documents: [] };
-  const [maintSnap, insSnap, expSnap, docSnap] = await Promise.all([
+  if (equipmentIds.length === 0) return { maintenance: [], insurances: [], expenses: [], documents: [], fuelLogs: [], serviceSchedules: [] };
+  const [maintSnap, insSnap, expSnap, docSnap, fuelSnap, schedSnap, sitesSnap] = await Promise.all([
     adminDb.collection("maintenance").get(),
     adminDb.collection("insurances").get(),
     adminDb.collection("equipmentExpenses").get(),
     adminDb.collection("documents").get(),
+    adminDb.collection("fuelLogs").get(),
+    adminDb.collection("serviceSchedules").get(),
+    adminDb.collection("workSites").get(),
   ]);
+  const sitesMap: Record<string, { id: string; name: string; location: string | null }> = {};
+  snap<WorkSite>(sitesSnap).forEach(s => { sitesMap[s.id] = { id: s.id, name: s.name, location: s.location }; });
+  const fuelLogs = snap<FuelLog>(fuelSnap).filter(r => equipmentIds.includes(r.equipmentId)).map(r => ({
+    ...r, workSite: r.workSiteId ? (sitesMap[r.workSiteId] || null) : null,
+  }));
   return {
     maintenance: snap<MaintenanceRecord>(maintSnap).filter(r => equipmentIds.includes(r.equipmentId)),
     insurances: snap<Insurance>(insSnap).filter(r => equipmentIds.includes(r.equipmentId)),
     expenses: snap<EquipmentExpense>(expSnap).filter(r => equipmentIds.includes(r.equipmentId)),
     documents: snap<Document>(docSnap).filter(r => r.equipmentId != null && equipmentIds.includes(r.equipmentId!)),
+    fuelLogs,
+    serviceSchedules: snap<ServiceSchedule>(schedSnap).filter(r => equipmentIds.includes(r.equipmentId)),
   };
 }
 
@@ -189,6 +199,8 @@ export async function getAllEquipment() {
     insurances: related.insurances.filter(r => r.equipmentId === eq.id),
     expenses: related.expenses.filter(r => r.equipmentId === eq.id),
     documents: related.documents.filter(r => r.equipmentId === eq.id),
+    fuelLogs: related.fuelLogs.filter(r => r.equipmentId === eq.id),
+    serviceSchedules: related.serviceSchedules.filter(r => r.equipmentId === eq.id),
   }));
 }
 
@@ -203,6 +215,8 @@ export async function getEquipmentById(id: string) {
     insurances: related.insurances,
     expenses: related.expenses,
     documents: related.documents,
+    fuelLogs: related.fuelLogs,
+    serviceSchedules: related.serviceSchedules,
   };
 }
 
@@ -221,14 +235,16 @@ export async function updateEquipment(id: string, eqData: Partial<Equipment>) {
 }
 
 export async function deleteEquipment(id: string) {
-  const [maintSnap, insSnap, expSnap, docSnap] = await Promise.all([
+  const [maintSnap, insSnap, expSnap, docSnap, fuelSnap, schedSnap] = await Promise.all([
     adminDb.collection("maintenance").where("equipmentId", "==", id).get(),
     adminDb.collection("insurances").where("equipmentId", "==", id).get(),
     adminDb.collection("equipmentExpenses").where("equipmentId", "==", id).get(),
     adminDb.collection("documents").where("equipmentId", "==", id).get(),
+    adminDb.collection("fuelLogs").where("equipmentId", "==", id).get(),
+    adminDb.collection("serviceSchedules").where("equipmentId", "==", id).get(),
   ]);
   const batch = adminDb.batch();
-  [...maintSnap.docs, ...insSnap.docs, ...expSnap.docs, ...docSnap.docs].forEach(doc => batch.delete(doc.ref));
+  [...maintSnap.docs, ...insSnap.docs, ...expSnap.docs, ...docSnap.docs, ...fuelSnap.docs, ...schedSnap.docs].forEach(doc => batch.delete(doc.ref));
   batch.delete(adminDb.collection("equipment").doc(id));
   await batch.commit();
 }
@@ -261,6 +277,32 @@ export async function updateInsurance(id: string, data: Partial<Insurance>) {
 
 export async function deleteInsurance(id: string) {
   await adminDb.collection("insurances").doc(id).delete();
+}
+
+// --- Fuel Logs ---
+export async function createFuelLog(data: Partial<FuelLog> & { equipmentId: string }) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("fuelLogs").doc(id).set(rec);
+  return rec as FuelLog;
+}
+
+export async function deleteFuelLog(id: string) {
+  await adminDb.collection("fuelLogs").doc(id).delete();
+}
+
+// --- Service Schedules ---
+export async function createServiceSchedule(data: Partial<ServiceSchedule> & { equipmentId: string }) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("serviceSchedules").doc(id).set(rec);
+  return rec as ServiceSchedule;
+}
+
+export async function deleteServiceSchedule(id: string) {
+  await adminDb.collection("serviceSchedules").doc(id).delete();
 }
 
 // --- Equipment Expenses ---
@@ -413,6 +455,8 @@ export type Equipment = {
   insurances?: Insurance[];
   expenses?: EquipmentExpense[];
   documents?: Document[];
+  fuelLogs?: FuelLog[];
+  serviceSchedules?: ServiceSchedule[];
 };
 
 export type MaintenanceRecord = {
@@ -432,6 +476,22 @@ export type EquipmentExpense = {
   id: string; equipmentId: string; category: string;
   amount: number; description: string; date: string;
   receiptUrl: string | null;
+  workSiteId: string | null;
+  createdAt: string; updatedAt: string;
+};
+
+export type FuelLog = {
+  id: string; equipmentId: string;
+  date: string; liters: number; pricePerLiter: number; totalCost: number;
+  workSiteId: string | null; mileage: number | null; notes: string | null;
+  createdAt: string; updatedAt: string;
+  workSite?: { id: string; name: string; location?: string | null } | null;
+};
+
+export type ServiceSchedule = {
+  id: string; equipmentId: string;
+  name: string; intervalHours: number | null; intervalKm: number | null;
+  notes: string | null;
   createdAt: string; updatedAt: string;
 };
 

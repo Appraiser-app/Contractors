@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { uploadReceipt } from "@/lib/upload";
-import type { Equipment, MaintenanceRecord, Insurance, EquipmentExpense, Document } from "@/lib/db";
+import type { Equipment, MaintenanceRecord, Insurance, EquipmentExpense, Document, FuelLog, ServiceSchedule } from "@/lib/db";
+
+type WorkSite = { id: string; name: string; location?: string | null };
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(amount);
 }
-
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("he-IL");
 }
-
 function isExpired(dateStr: string) {
   return new Date(dateStr).getTime() < Date.now();
 }
-
 function isExpiringSoon(dateStr: string, days = 30) {
   const diff = new Date(dateStr).getTime() - Date.now();
   return diff > 0 && diff < days * 86400000;
@@ -26,24 +25,25 @@ function isExpiringSoon(dateStr: string, days = 30) {
 function MaintenanceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: boolean }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
+  const [showSchedForm, setShowSchedForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ description: "", cost: "", date: new Date().toISOString().slice(0, 10), mileage: "", notes: "" });
+  const [schedForm, setSchedForm] = useState({ name: "", intervalHours: "", intervalKm: "", notes: "" });
   const records = equipment.maintenance || [];
+  const schedules = equipment.serviceSchedules || [];
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/maintenance", {
+    await fetch("/api/maintenance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ equipmentId: equipment.id, description: form.description, cost: form.cost ? parseFloat(form.cost) : null, date: form.date, mileage: form.mileage ? parseInt(form.mileage) : null, notes: form.notes || null }),
     });
-    if (res.ok) {
-      setForm({ description: "", cost: "", date: new Date().toISOString().slice(0, 10), mileage: "", notes: "" });
-      setShowForm(false);
-      router.refresh();
-    }
+    setForm({ description: "", cost: "", date: new Date().toISOString().slice(0, 10), mileage: "", notes: "" });
+    setShowForm(false);
     setLoading(false);
+    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -52,76 +52,171 @@ function MaintenanceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin:
     router.refresh();
   }
 
+  async function handleAddSched(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch("/api/service-schedules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ equipmentId: equipment.id, name: schedForm.name, intervalHours: schedForm.intervalHours || null, intervalKm: schedForm.intervalKm || null, notes: schedForm.notes || null }),
+    });
+    setSchedForm({ name: "", intervalHours: "", intervalKm: "", notes: "" });
+    setShowSchedForm(false);
+    router.refresh();
+  }
+
+  async function handleDeleteSched(id: string) {
+    if (!confirm("למחוק מרווח שירות זה?")) return;
+    await fetch(`/api/service-schedules/${id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800">רשומות תחזוקה ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          הוסף טיפול
-        </button>
+    <div className="space-y-6">
+      {/* Manufacturer service schedules */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-sm">לוח טיפולים לפי יצרן</h3>
+            <p className="text-xs text-gray-400">מרווחי שירות מומלצים</p>
+          </div>
+          {isAdmin && (
+            <button onClick={() => setShowSchedForm(!showSchedForm)} className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              הוסף מרווח
+            </button>
+          )}
+        </div>
+
+        {showSchedForm && (
+          <form onSubmit={handleAddSched} className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">שם הטיפול *</label>
+                <input type="text" value={schedForm.name} onChange={e => setSchedForm(p => ({ ...p, name: e.target.value }))} required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="החלפת שמן מנוע" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">כל כמה שעות</label>
+                <input type="number" value={schedForm.intervalHours} onChange={e => setSchedForm(p => ({ ...p, intervalHours: e.target.value }))} min="1"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="250" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">כל כמה ק"מ</label>
+                <input type="number" value={schedForm.intervalKm} onChange={e => setSchedForm(p => ({ ...p, intervalKm: e.target.value }))} min="1"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="10000" dir="ltr" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
+                <input type="text" value={schedForm.notes} onChange={e => setSchedForm(p => ({ ...p, notes: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="לפי הוראות יצרן..." />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">שמור</button>
+              <button type="button" onClick={() => setShowSchedForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
+            </div>
+          </form>
+        )}
+
+        {schedules.length === 0 ? (
+          <p className="text-gray-400 text-xs text-center py-3 bg-amber-50 rounded-xl border border-dashed border-amber-200">לא הוגדרו מרווחי שירות עדיין</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {schedules.map((s: ServiceSchedule) => (
+              <div key={s.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                <div>
+                  <p className="font-medium text-gray-800 text-sm">{s.name}</p>
+                  <div className="flex gap-2 mt-0.5 text-xs text-gray-400">
+                    {s.intervalHours && <span>כל {s.intervalHours.toLocaleString()} שעות</span>}
+                    {s.intervalHours && s.intervalKm && <span>·</span>}
+                    {s.intervalKm && <span>כל {s.intervalKm.toLocaleString()} ק"מ</span>}
+                    {s.notes && <span>· {s.notes}</span>}
+                  </div>
+                </div>
+                {isAdmin && (
+                  <button onClick={() => handleDeleteSched(s.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {showForm && (
-        <form onSubmit={handleAdd} className="bg-green-50 border border-green-100 rounded-xl p-4 mb-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">תיאור הטיפול *</label>
-              <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="החלפת שמן + פילטר" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
-              <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" dir="ltr" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">עלות (₪)</label>
-              <input type="number" value={form.cost} onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} min="0"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="500" dir="ltr" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">קילומטראז'</label>
-              <input type="number" value={form.mileage} onChange={e => setForm(p => ({ ...p, mileage: e.target.value }))} min="0"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="120000" dir="ltr" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
-              <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="פרטים נוספים..." />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
-            <button type="button" onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
-          </div>
-        </form>
-      )}
-
-      {records.length === 0 ? (
-        <p className="text-gray-400 text-sm text-center py-8">אין רשומות תחזוקה עדיין</p>
-      ) : (
-        <div className="space-y-2">
-          {[...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-            <div key={r.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-start justify-between">
-              <div>
-                <p className="font-medium text-gray-800 text-sm">{r.description}</p>
-                <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                  <span>{formatDate(r.date)}</span>
-                  {r.cost != null && <span className="text-red-500">{formatCurrency(r.cost)}</span>}
-                  {r.mileage && <span>{r.mileage.toLocaleString()} ק"מ</span>}
-                </div>
-                {r.notes && <p className="text-xs text-gray-400 mt-1">{r.notes}</p>}
-              </div>
-              {isAdmin && (
-                <button onClick={() => handleDelete(r.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              )}
-            </div>
-          ))}
+      {/* Maintenance records */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">רשומות טיפול ({records.length})</h3>
+          {isAdmin && (
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              הוסף טיפול
+            </button>
+          )}
         </div>
-      )}
+
+        {showForm && (
+          <form onSubmit={handleAdd} className="bg-green-50 border border-green-100 rounded-xl p-4 mb-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">תיאור הטיפול *</label>
+                <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="החלפת שמן + פילטר" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
+                <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">עלות (₪)</label>
+                <input type="number" value={form.cost} onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} min="0"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="500" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">קילומטראז' / שעות</label>
+                <input type="number" value={form.mileage} onChange={e => setForm(p => ({ ...p, mileage: e.target.value }))} min="0"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="250" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
+                <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" placeholder="פרטים נוספים..." />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
+              <button type="button" onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
+            </div>
+          </form>
+        )}
+
+        {records.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-8">אין רשומות טיפול עדיין</p>
+        ) : (
+          <div className="space-y-2">
+            {[...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((r: MaintenanceRecord) => (
+              <div key={r.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-start justify-between">
+                <div>
+                  <p className="font-medium text-gray-800 text-sm">{r.description}</p>
+                  <div className="flex gap-3 mt-1 text-xs text-gray-400">
+                    <span>{formatDate(r.date)}</span>
+                    {r.cost != null && <span className="text-red-500">{formatCurrency(r.cost)}</span>}
+                    {r.mileage && <span>{r.mileage.toLocaleString()} {r.mileage < 10000 ? 'ש"ע' : 'ק"מ'}</span>}
+                  </div>
+                  {r.notes && <p className="text-xs text-gray-400 mt-1">{r.notes}</p>}
+                </div>
+                {isAdmin && (
+                  <button onClick={() => handleDelete(r.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -137,17 +232,15 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/insurance", {
+    await fetch("/api/insurance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ equipmentId: equipment.id, type: form.type, company: form.company || null, policyNumber: form.policyNumber || null, startDate: form.startDate, endDate: form.endDate, cost: parseFloat(form.cost) || 0, isPaid: form.isPaid }),
     });
-    if (res.ok) {
-      setForm({ type: "", company: "", policyNumber: "", startDate: new Date().toISOString().slice(0, 10), endDate: "", cost: "", isPaid: false });
-      setShowForm(false);
-      router.refresh();
-    }
+    setForm({ type: "", company: "", policyNumber: "", startDate: new Date().toISOString().slice(0, 10), endDate: "", cost: "", isPaid: false });
+    setShowForm(false);
     setLoading(false);
+    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -160,10 +253,12 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">ביטוחים ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          הוסף ביטוח
-        </button>
+        {isAdmin && (
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            הוסף ביטוח
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -215,7 +310,7 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
         <p className="text-gray-400 text-sm text-center py-8">אין ביטוחים רשומים</p>
       ) : (
         <div className="space-y-2">
-          {[...records].sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()).map(ins => {
+          {[...records].sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()).map((ins: Insurance) => {
             const expired = isExpired(ins.endDate);
             const expiring = !expired && isExpiringSoon(ins.endDate);
             return (
@@ -248,15 +343,194 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
   );
 }
 
+// --- Fuel Tab ---
+function FuelTab({ equipment, isAdmin, sites }: { equipment: Equipment; isAdmin: boolean; sites: WorkSite[] }) {
+  const router = useRouter();
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), liters: "", pricePerLiter: "", totalCost: "", workSiteId: "", mileage: "", notes: "" });
+  const logs = equipment.fuelLogs || [];
+
+  const totalLiters = logs.reduce((s, l) => s + l.liters, 0);
+  const totalCost = logs.reduce((s, l) => s + l.totalCost, 0);
+
+  // Auto-calculate totalCost when liters or pricePerLiter changes
+  function handleLitersChange(val: string) {
+    const l = parseFloat(val) || 0;
+    const p = parseFloat(form.pricePerLiter) || 0;
+    setForm(prev => ({ ...prev, liters: val, totalCost: l && p ? (l * p).toFixed(2) : prev.totalCost }));
+  }
+  function handlePriceChange(val: string) {
+    const p = parseFloat(val) || 0;
+    const l = parseFloat(form.liters) || 0;
+    setForm(prev => ({ ...prev, pricePerLiter: val, totalCost: l && p ? (l * p).toFixed(2) : prev.totalCost }));
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    await fetch("/api/fuel-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ equipmentId: equipment.id, date: form.date, liters: parseFloat(form.liters), pricePerLiter: parseFloat(form.pricePerLiter), totalCost: parseFloat(form.totalCost), workSiteId: form.workSiteId || null, mileage: form.mileage || null, notes: form.notes || null }),
+    });
+    setForm({ date: new Date().toISOString().slice(0, 10), liters: "", pricePerLiter: "", totalCost: "", workSiteId: "", mileage: "", notes: "" });
+    setShowForm(false);
+    setLoading(false);
+    router.refresh();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("למחוק רשומה זו?")) return;
+    await fetch(`/api/fuel-logs/${id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  // Group by site for summary
+  const bySite: Record<string, { name: string; liters: number; cost: number }> = {};
+  logs.forEach(l => {
+    const key = l.workSiteId || "__none__";
+    const name = l.workSite?.name || "לא משויך לאתר";
+    if (!bySite[key]) bySite[key] = { name, liters: 0, cost: 0 };
+    bySite[key].liters += l.liters;
+    bySite[key].cost += l.totalCost;
+  });
+
+  return (
+    <div>
+      {/* Summary */}
+      {logs.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-orange-50 rounded-xl p-3 border border-orange-100">
+            <p className="text-xs text-gray-400 mb-0.5">סה"כ ליטרים</p>
+            <p className="text-lg font-bold text-orange-600">{totalLiters.toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל'</p>
+          </div>
+          <div className="bg-red-50 rounded-xl p-3 border border-red-100">
+            <p className="text-xs text-gray-400 mb-0.5">עלות דלק כוללת</p>
+            <p className="text-lg font-bold text-red-600">{formatCurrency(totalCost)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* By site breakdown */}
+      {Object.keys(bySite).length > 1 && (
+        <div className="mb-5">
+          <h4 className="text-xs font-semibold text-gray-500 mb-2">דלק לפי אתר עבודה</h4>
+          <div className="space-y-1.5">
+            {Object.values(bySite).sort((a, b) => b.cost - a.cost).map((s, i) => (
+              <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-sm text-gray-700">{s.name}</span>
+                <div className="flex gap-3 text-xs text-gray-500">
+                  <span>{s.liters.toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל'</span>
+                  <span className="text-red-500 font-medium">{formatCurrency(s.cost)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-800">יומן תדלוקים ({logs.length})</h3>
+        {isAdmin && (
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            הוסף תדלוק
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleAdd} className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
+              <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">אתר עבודה</label>
+              <select value={form.workSiteId} onChange={e => setForm(p => ({ ...p, workSiteId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+                <option value="">ללא שיוך</option>
+                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">ליטרים *</label>
+              <input type="number" value={form.liters} onChange={e => handleLitersChange(e.target.value)} required min="0" step="0.1"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="50" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">מחיר לליטר (₪) *</label>
+              <input type="number" value={form.pricePerLiter} onChange={e => handlePriceChange(e.target.value)} required min="0" step="0.01"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="6.50" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">עלות כוללת (₪) *</label>
+              <input type="number" value={form.totalCost} onChange={e => setForm(p => ({ ...p, totalCost: e.target.value }))} required min="0"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-orange-50" placeholder="325" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">ק"מ / שעות</label>
+              <input type="number" value={form.mileage} onChange={e => setForm(p => ({ ...p, mileage: e.target.value }))} min="0"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="12500" dir="ltr" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">הערות</label>
+              <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="תחנת דלק, הערות..." />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-400 disabled:bg-gray-200 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">{loading ? "שומר..." : "שמור"}</button>
+            <button type="button" onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-50">ביטול</button>
+          </div>
+        </form>
+      )}
+
+      {logs.length === 0 ? (
+        <p className="text-gray-400 text-sm text-center py-8">אין רשומות תדלוק עדיין</p>
+      ) : (
+        <div className="space-y-2">
+          {[...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((l: FuelLog) => (
+            <div key={l.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-gray-800">{l.liters} ל'</span>
+                  <span className="text-xs text-gray-400">×</span>
+                  <span className="text-xs text-gray-400">₪{l.pricePerLiter}/ל'</span>
+                  <span className="text-xs font-bold text-orange-600">{formatCurrency(l.totalCost)}</span>
+                </div>
+                <div className="flex gap-3 text-xs text-gray-400">
+                  <span>{formatDate(l.date)}</span>
+                  {l.workSite && <span className="text-blue-500">{l.workSite.name}</span>}
+                  {l.mileage && <span>{l.mileage.toLocaleString()} ק"מ</span>}
+                  {l.notes && <span>{l.notes}</span>}
+                </div>
+              </div>
+              {isAdmin && (
+                <button onClick={() => handleDelete(l.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Expenses Tab ---
-function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: boolean }) {
+function ExpensesTab({ equipment, isAdmin, sites }: { equipment: Equipment; isAdmin: boolean; sites: WorkSite[] }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ category: "", amount: "", description: "", date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ category: "", amount: "", description: "", date: new Date().toISOString().slice(0, 10), workSiteId: "" });
   const records = equipment.expenses || [];
   const total = records.reduce((s, e) => s + e.amount, 0);
 
@@ -275,18 +549,16 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
         return;
       }
     }
-    const res = await fetch("/api/equipment-expense", {
+    await fetch("/api/equipment-expense", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, category: form.category, amount: parseFloat(form.amount), description: form.description, date: form.date, receiptUrl }),
+      body: JSON.stringify({ equipmentId: equipment.id, category: form.category, amount: parseFloat(form.amount), description: form.description, date: form.date, receiptUrl, workSiteId: form.workSiteId || null }),
     });
-    if (res.ok) {
-      setForm({ category: "", amount: "", description: "", date: new Date().toISOString().slice(0, 10) });
-      setReceiptFile(null);
-      setShowForm(false);
-      router.refresh();
-    }
+    setForm({ category: "", amount: "", description: "", date: new Date().toISOString().slice(0, 10), workSiteId: "" });
+    setReceiptFile(null);
+    setShowForm(false);
     setLoading(false);
+    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -304,10 +576,12 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
           <h3 className="font-semibold text-gray-800">הוצאות ({records.length})</h3>
           {records.length > 0 && <p className="text-xs text-red-500 mt-0.5">סה"כ: {formatCurrency(total)}</p>}
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          הוסף הוצאה
-        </button>
+        {isAdmin && (
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            הוסף הוצאה
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -335,6 +609,14 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
               <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>
               <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" dir="ltr" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">אתר עבודה (אופציונלי)</label>
+              <select value={form.workSiteId} onChange={e => setForm(p => ({ ...p, workSiteId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white">
+                <option value="">ללא שיוך לאתר</option>
+                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">קבלה (אופציונלי)</label>
@@ -370,7 +652,7 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
         <p className="text-gray-400 text-sm text-center py-8">אין הוצאות רשומות</p>
       ) : (
         <div className="space-y-2">
-          {[...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => (
+          {[...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((exp: EquipmentExpense) => (
             <div key={exp.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -406,29 +688,16 @@ function ExpensesTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: bo
 
 // --- Documents Tab ---
 const DOC_TYPE_LABELS: Record<string, string> = {
-  LICENSE: "רישיון רכב",
-  MANDATORY_INSURANCE: "ביטוח חובה",
-  COMPREHENSIVE_INSURANCE: "ביטוח מקיף",
-  ITURAN: "איתוראן",
-  OWNERSHIP_TRANSFER: "אישור העברת בעלות",
-  INSURANCE: "ביטוח",
-  PERMIT: "אישור",
-  CONTRACT: "חוזה",
-  RECEIPT: "קבלה",
-  OTHER: "אחר",
+  LICENSE: "רישיון רכב", MANDATORY_INSURANCE: "ביטוח חובה", COMPREHENSIVE_INSURANCE: "ביטוח מקיף",
+  ITURAN: "איתוראן", OWNERSHIP_TRANSFER: "אישור העברת בעלות", INSURANCE: "ביטוח",
+  PERMIT: "אישור", CONTRACT: "חוזה", RECEIPT: "קבלה", OTHER: "אחר",
 };
-
 const DOC_TYPE_COLORS: Record<string, string> = {
-  LICENSE: "bg-blue-100 text-blue-700",
-  MANDATORY_INSURANCE: "bg-orange-100 text-orange-700",
-  COMPREHENSIVE_INSURANCE: "bg-purple-100 text-purple-700",
-  ITURAN: "bg-cyan-100 text-cyan-700",
-  OWNERSHIP_TRANSFER: "bg-green-100 text-green-700",
-  INSURANCE: "bg-orange-100 text-orange-700",
-  PERMIT: "bg-yellow-100 text-yellow-700",
-  CONTRACT: "bg-gray-100 text-gray-700",
-  RECEIPT: "bg-gray-100 text-gray-600",
-  OTHER: "bg-gray-100 text-gray-600",
+  LICENSE: "bg-blue-100 text-blue-700", MANDATORY_INSURANCE: "bg-orange-100 text-orange-700",
+  COMPREHENSIVE_INSURANCE: "bg-purple-100 text-purple-700", ITURAN: "bg-cyan-100 text-cyan-700",
+  OWNERSHIP_TRANSFER: "bg-green-100 text-green-700", INSURANCE: "bg-orange-100 text-orange-700",
+  PERMIT: "bg-yellow-100 text-yellow-700", CONTRACT: "bg-gray-100 text-gray-700",
+  RECEIPT: "bg-gray-100 text-gray-600", OTHER: "bg-gray-100 text-gray-600",
 };
 
 function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: boolean }) {
@@ -445,31 +714,21 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     e.preventDefault();
     setLoading(true);
     let fileUrl: string | null = null;
-
     if (docFile) {
       setUploading(true);
-      try {
-        fileUrl = await uploadReceipt(docFile, "equipment-expenses");
-      } catch {
-        setLoading(false);
-        setUploading(false);
-        return;
-      }
+      try { fileUrl = await uploadReceipt(docFile, "equipment-expenses"); } catch { setLoading(false); setUploading(false); return; }
       setUploading(false);
     }
-
-    const res = await fetch("/api/documents", {
+    await fetch("/api/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ equipmentId: equipment.id, title: form.title, type: form.type, expiryDate: form.expiryDate || null, notes: form.notes || null, fileUrl }),
     });
-    if (res.ok) {
-      setForm({ title: "", type: "LICENSE", expiryDate: "", notes: "" });
-      setDocFile(null);
-      setShowForm(false);
-      router.refresh();
-    }
+    setForm({ title: "", type: "LICENSE", expiryDate: "", notes: "" });
+    setDocFile(null);
+    setShowForm(false);
     setLoading(false);
+    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -478,7 +737,6 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     router.refresh();
   }
 
-  // Auto-fill title when type changes
   function handleTypeChange(type: string) {
     setForm(p => ({ ...p, type: type as Document["type"], title: p.title || DOC_TYPE_LABELS[type] || "" }));
   }
@@ -487,13 +745,14 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     <div>
       <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
         onChange={e => setDocFile(e.target.files?.[0] || null)} />
-
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800">מסמכים ({records.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          הוסף מסמך
-        </button>
+        {isAdmin && (
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            הוסף מסמך
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -563,7 +822,7 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
         <p className="text-gray-400 text-sm text-center py-8">אין מסמכים רשומים</p>
       ) : (
         <div className="space-y-2">
-          {[...records].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(doc => {
+          {[...records].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((doc: Document) => {
             const expired = doc.expiryDate && isExpired(doc.expiryDate);
             const expiring = doc.expiryDate && !expired && isExpiringSoon(doc.expiryDate);
             return (
@@ -605,32 +864,148 @@ function DocumentsTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
   );
 }
 
+// --- Analytics Tab ---
+function AnalyticsTab({ equipment }: { equipment: Equipment }) {
+  const fuelLogs = equipment.fuelLogs || [];
+  const expenses = equipment.expenses || [];
+  const maintenance = equipment.maintenance || [];
+  const insurances = equipment.insurances || [];
+
+  const totalFuel = fuelLogs.reduce((s, l) => s + l.totalCost, 0);
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalMaint = maintenance.reduce((s, m) => s + (m.cost || 0), 0);
+  const totalInsurance = insurances.reduce((s, i) => s + i.cost, 0);
+  const grandTotal = totalFuel + totalExpenses + totalMaint + totalInsurance;
+
+  // Cost breakdown by category
+  const categories = [
+    { label: "דלק", amount: totalFuel, color: "bg-orange-400" },
+    { label: "תחזוקה", amount: totalMaint, color: "bg-green-500" },
+    { label: "הוצאות", amount: totalExpenses, color: "bg-red-400" },
+    { label: "ביטוחים", amount: totalInsurance, color: "bg-blue-400" },
+  ].filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount);
+
+  // Fuel by site
+  const fuelBySite: Record<string, { name: string; liters: number; cost: number }> = {};
+  fuelLogs.forEach(l => {
+    const key = l.workSiteId || "__none__";
+    const name = l.workSite?.name || "לא משויך";
+    if (!fuelBySite[key]) fuelBySite[key] = { name, liters: 0, cost: 0 };
+    fuelBySite[key].liters += l.liters;
+    fuelBySite[key].cost += l.totalCost;
+  });
+
+  const fuelSites = Object.values(fuelBySite).sort((a, b) => b.cost - a.cost);
+
+  if (grandTotal === 0) {
+    return <p className="text-gray-400 text-sm text-center py-8">אין נתונים עדיין — הוסף הוצאות, תדלוקים וביטוחים</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Grand total */}
+      <div className="bg-gray-900 rounded-2xl p-5 text-white">
+        <p className="text-sm text-gray-400 mb-1">עלות כוללת לכלי</p>
+        <p className="text-3xl font-bold">{formatCurrency(grandTotal)}</p>
+      </div>
+
+      {/* Category breakdown */}
+      <div>
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">פירוט לפי קטגוריה</h4>
+        <div className="space-y-2">
+          {categories.map(c => (
+            <div key={c.label}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-700">{c.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{grandTotal > 0 ? Math.round(c.amount / grandTotal * 100) : 0}%</span>
+                  <span className="text-sm font-medium text-gray-800">{formatCurrency(c.amount)}</span>
+                </div>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full ${c.color} rounded-full`} style={{ width: `${grandTotal > 0 ? c.amount / grandTotal * 100 : 0}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Fuel by work site */}
+      {fuelSites.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">דלק לפי אתר עבודה</h4>
+          <div className="space-y-2">
+            {fuelSites.map((s, i) => (
+              <div key={i} className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{s.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{s.liters.toLocaleString("he-IL", { maximumFractionDigits: 1 })} ליטרים</p>
+                </div>
+                <p className="text-sm font-bold text-orange-600">{formatCurrency(s.cost)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <p className="text-xs text-gray-400">מספר טיפולים</p>
+          <p className="text-xl font-bold text-gray-800 mt-0.5">{maintenance.length}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <p className="text-xs text-gray-400">מספר תדלוקים</p>
+          <p className="text-xl font-bold text-gray-800 mt-0.5">{fuelLogs.length}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <p className="text-xs text-gray-400">סה"כ ליטרים</p>
+          <p className="text-xl font-bold text-orange-600 mt-0.5">{fuelLogs.reduce((s, l) => s + l.liters, 0).toLocaleString("he-IL", { maximumFractionDigits: 1 })}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <p className="text-xs text-gray-400">ביטוחים פעילים</p>
+          <p className="text-xl font-bold text-blue-600 mt-0.5">{insurances.filter(i => !isExpired(i.endDate)).length}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Main Tabs Component ---
 const TABS = [
-  { id: "maintenance", label: "תחזוקות" },
+  { id: "maintenance", label: "טיפולים" },
+  { id: "fuel", label: "תדלוקים" },
   { id: "insurance", label: "ביטוחים" },
   { id: "expenses", label: "הוצאות" },
   { id: "documents", label: "מסמכים" },
+  { id: "analytics", label: "ניתוח" },
 ];
 
 export default function EquipmentTabs({ equipment, isAdmin }: { equipment: Equipment; isAdmin: boolean }) {
   const [activeTab, setActiveTab] = useState("maintenance");
+  const [sites, setSites] = useState<WorkSite[]>([]);
+
+  useEffect(() => {
+    fetch("/api/sites").then(r => r.json()).then(data => setSites(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100">
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-gray-100 overflow-x-auto">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.id ? "text-green-600 border-b-2 border-green-600" : "text-gray-400 hover:text-gray-600"}`}>
+            className={`flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id ? "text-green-600 border-b-2 border-green-600" : "text-gray-400 hover:text-gray-600"}`}>
             {tab.label}
           </button>
         ))}
       </div>
       <div className="p-5">
         {activeTab === "maintenance" && <MaintenanceTab equipment={equipment} isAdmin={isAdmin} />}
+        {activeTab === "fuel" && <FuelTab equipment={equipment} isAdmin={isAdmin} sites={sites} />}
         {activeTab === "insurance" && <InsuranceTab equipment={equipment} isAdmin={isAdmin} />}
-        {activeTab === "expenses" && <ExpensesTab equipment={equipment} isAdmin={isAdmin} />}
+        {activeTab === "expenses" && <ExpensesTab equipment={equipment} isAdmin={isAdmin} sites={sites} />}
         {activeTab === "documents" && <DocumentsTab equipment={equipment} isAdmin={isAdmin} />}
+        {activeTab === "analytics" && <AnalyticsTab equipment={equipment} />}
       </div>
     </div>
   );

@@ -27,6 +27,8 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
 
   const totalExpenses = (eq.expenses || []).reduce((s, e) => s + e.amount, 0);
   const totalMaint = (eq.maintenance || []).reduce((s, m) => s + (m.cost || 0), 0);
+  const totalFuel = (eq.fuelLogs || []).reduce((s, l) => s + l.totalCost, 0);
+  const totalLiters = (eq.fuelLogs || []).reduce((s, l) => s + l.liters, 0);
   const isAdmin = profile?.role === "ADMIN";
 
   return (
@@ -68,9 +70,14 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <p className="text-xs text-gray-400 mb-1">תחזוקות</p>
+          <p className="text-xs text-gray-400 mb-1">טיפולים</p>
           <p className="text-xl font-bold text-gray-800">{(eq.maintenance || []).length}</p>
           <p className="text-xs text-red-500 mt-0.5">{formatCurrency(totalMaint)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <p className="text-xs text-gray-400 mb-1">תדלוקים</p>
+          <p className="text-xl font-bold text-gray-800">{(eq.fuelLogs || []).length}</p>
+          <p className="text-xs text-orange-500 mt-0.5">{totalLiters.toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל' · {formatCurrency(totalFuel)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-xs text-gray-400 mb-1">ביטוחים</p>
@@ -80,13 +87,8 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <p className="text-xs text-gray-400 mb-1">הוצאות</p>
-          <p className="text-xl font-bold text-gray-800">{(eq.expenses || []).length}</p>
-          <p className="text-xs text-red-500 mt-0.5">{formatCurrency(totalExpenses)}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-xs text-gray-400 mb-1">עלות כוללת</p>
-          <p className="text-xl font-bold text-red-600">{formatCurrency(totalExpenses + totalMaint)}</p>
+          <p className="text-xl font-bold text-red-600">{formatCurrency(totalExpenses + totalMaint + totalFuel)}</p>
         </div>
       </div>
 
