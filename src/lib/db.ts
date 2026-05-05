@@ -360,6 +360,9 @@ export type WorkSite = {
   status: "ACTIVE" | "COMPLETED" | "ON_HOLD";
   startDate: string | null; endDate: string | null;
   workOrderUrl: string | null;
+  orderNumber: string | null;
+  completedAt: string | null;
+  collectedAt: string | null;
   createdAt: string; updatedAt: string;
   transactions?: Transaction[];
 };

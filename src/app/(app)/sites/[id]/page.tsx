@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import DeleteSiteButton from "@/components/DeleteSiteButton";
 import AddTransactionForm from "@/components/AddTransactionForm";
+import CompleteWorkButton from "@/components/CompleteWorkButton";
 
 const statusLabel: Record<string, string> = { ACTIVE: "פעיל", COMPLETED: "הושלם", ON_HOLD: "מושהה" };
 const statusColor: Record<string, string> = { ACTIVE: "bg-green-100 text-green-700", COMPLETED: "bg-blue-100 text-blue-700", ON_HOLD: "bg-yellow-100 text-yellow-700" };
@@ -45,17 +46,22 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
           </div>
           {site.location && <p className="text-gray-500 text-sm sm:mr-8">{site.location}</p>}
         </div>
-        {isAdmin && (
-          <div className="flex gap-2 flex-shrink-0">
-            <Link href={`/sites/${site.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              עריכה
-            </Link>
-            <DeleteSiteButton siteId={site.id} />
-          </div>
-        )}
+        <div className="flex gap-2 flex-shrink-0 flex-wrap">
+          {site.status === "ACTIVE" && (
+            <CompleteWorkButton siteId={site.id} createdAt={site.createdAt} />
+          )}
+          {isAdmin && (
+            <>
+              <Link href={`/sites/${site.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                עריכה
+              </Link>
+              <DeleteSiteButton siteId={site.id} />
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-8">

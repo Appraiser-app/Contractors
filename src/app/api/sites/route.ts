@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, location, description, clientName, clientPhone, contractValue, status, startDate, endDate, workOrderUrl } = body;
+  const { name, location, description, clientName, clientPhone, contractValue, status, startDate, endDate, workOrderUrl, orderNumber } = body;
 
   if (!name) return NextResponse.json({ error: "שם האתר חובה" }, { status: 400 });
 
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       startDate: startDate || null,
       endDate: endDate || null,
       workOrderUrl: workOrderUrl || null,
+      orderNumber: orderNumber || null,
     });
     return NextResponse.json(site);
   } catch (e) {
