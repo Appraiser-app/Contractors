@@ -64,10 +64,21 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5"><p className="text-gray-400 text-xs mb-1">יתרה</p><p className={`text-xl sm:text-2xl font-bold ${balance >= 0 ? "text-green-700" : "text-red-700"}`}>{formatCurrency(balance)}</p></div>
       </div>
 
-      {(site.clientName || site.contractValue || site.description) && (
+      {(site.clientName || site.contractValue || site.description || site.workOrderUrl) && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 mb-4 sm:mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {site.clientName && <div><p className="text-xs text-gray-400 mb-0.5">שם לקוח</p><p className="text-sm font-medium text-gray-900">{site.clientName}</p></div>}
           {site.contractValue && <div><p className="text-xs text-gray-400 mb-0.5">ערך חוזה</p><p className="text-sm font-medium text-gray-900">{formatCurrency(site.contractValue)}</p></div>}
+          {site.workOrderUrl && (
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">הזמנת עבודה</p>
+              <a href={site.workOrderUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                פתיחת הזמנה
+              </a>
+            </div>
+          )}
           {site.description && <div className="sm:col-span-3"><p className="text-xs text-gray-400 mb-0.5">תיאור</p><p className="text-sm text-gray-600">{site.description}</p></div>}
         </div>
       )}

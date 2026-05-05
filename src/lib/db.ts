@@ -359,6 +359,7 @@ export type WorkSite = {
   clientName: string | null; clientPhone: string | null; contractValue: number | null;
   status: "ACTIVE" | "COMPLETED" | "ON_HOLD";
   startDate: string | null; endDate: string | null;
+  workOrderUrl: string | null;
   createdAt: string; updatedAt: string;
   transactions?: Transaction[];
 };

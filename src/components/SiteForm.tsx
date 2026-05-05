@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Site = {
   id: string;
@@ -14,12 +16,15 @@ type Site = {
   status: string;
   startDate: Date | null;
   endDate: Date | null;
+  workOrderUrl?: string | null;
 };
 
 export default function SiteForm({ site }: { site?: Site }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [workOrderFile, setWorkOrderFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
 
   const [form, setForm] = useState({
     name: site?.name || "",
@@ -42,11 +47,29 @@ export default function SiteForm({ site }: { site?: Site }) {
     setLoading(true);
     setError("");
 
+    let workOrderUrl: string | null = site?.workOrderUrl ?? null;
+
+    if (workOrderFile) {
+      setUploadProgress(true);
+      try {
+        const fileRef = ref(storage, `work-orders/${crypto.randomUUID()}-${workOrderFile.name}`);
+        await uploadBytes(fileRef, workOrderFile);
+        workOrderUrl = await getDownloadURL(fileRef);
+      } catch (err) {
+        setError("שגיאה בהעלאת הקובץ");
+        setLoading(false);
+        setUploadProgress(false);
+        return;
+      }
+      setUploadProgress(false);
+    }
+
     const body = {
       ...form,
       contractValue: form.contractValue ? parseFloat(form.contractValue) : null,
       startDate: form.startDate || null,
       endDate: form.endDate || null,
+      workOrderUrl,
     };
 
     const res = await fetch(site ? `/api/sites/${site.id}` : "/api/sites", {
@@ -170,6 +193,45 @@ export default function SiteForm({ site }: { site?: Site }) {
           />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">הזמנת עבודה (קובץ)</label>
+          {site?.workOrderUrl && !workOrderFile && (
+            <div className="mb-2 flex items-center gap-2 text-sm text-gray-600">
+              <span>קובץ קיים:</span>
+              <a href={site.workOrderUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-xs">
+                צפייה בהזמנה הנוכחית
+              </a>
+            </div>
+          )}
+          <div className="relative">
+            <input
+              type="file"
+              id="workOrderFile"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => setWorkOrderFile(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+            <label
+              htmlFor="workOrderFile"
+              className="flex items-center gap-2 w-full border border-dashed border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-500 hover:border-green-400 hover:text-green-600 cursor-pointer transition-colors"
+            >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              {workOrderFile ? workOrderFile.name : "לחץ לבחירת קובץ (PDF, Word, תמונה)"}
+            </label>
+          </div>
+          {workOrderFile && (
+            <button
+              type="button"
+              onClick={() => setWorkOrderFile(null)}
+              className="mt-1 text-xs text-gray-400 hover:text-red-500"
+            >
+              הסר קובץ
+            </button>
+          )}
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-red-600 text-sm">
             {error}
@@ -182,7 +244,7 @@ export default function SiteForm({ site }: { site?: Site }) {
             disabled={loading}
             className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
           >
-            {loading ? "שומר..." : site ? "עדכון אתר" : "הוספת אתר"}
+            {loading ? (uploadProgress ? "מעלה קובץ..." : "שומר...") : site ? "עדכון אתר" : "הוספת אתר"}
           </button>
           <button
             type="button"
