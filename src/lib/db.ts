@@ -462,12 +462,15 @@ export type Notification = {
 
 export type ExpenseEntity = "דור" | "שגיא" | "חברה של שגיא" | "חברה של דור";
 
+export type PaymentMethod = "מזומן" | "העברה בנקאית" | "כרטיס אשראי" | "צ'ק";
+
 export type Expense = {
   id: string;
   entity: ExpenseEntity;
   amount: number;
   description: string;
   category: string | null;
+  paymentMethod: PaymentMethod | null;
   date: string;
   receiptUrl: string | null;
   notes: string | null;

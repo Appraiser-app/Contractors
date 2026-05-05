@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { uploadReceipt } from "@/lib/upload";
 
 type ExpenseEntity = "דור" | "שגיא" | "חברה של שגיא" | "חברה של דור";
+type PaymentMethod = "מזומן" | "העברה בנקאית" | "כרטיס אשראי" | "צ'ק";
 
 type Expense = {
   id: string;
@@ -10,7 +12,9 @@ type Expense = {
   amount: number;
   description: string;
   category: string | null;
+  paymentMethod: PaymentMethod | null;
   date: string;
+  receiptUrl: string | null;
   notes: string | null;
   createdAt: string;
 };
@@ -22,6 +26,15 @@ const ENTITY_COLORS: Record<ExpenseEntity, string> = {
   "שגיא": "bg-purple-100 text-purple-700",
   "חברה של שגיא": "bg-orange-100 text-orange-700",
   "חברה של דור": "bg-cyan-100 text-cyan-700",
+};
+
+const PAYMENT_METHODS: PaymentMethod[] = ["מזומן", "העברה בנקאית", "כרטיס אשראי", "צ'ק"];
+
+const PAYMENT_ICONS: Record<PaymentMethod, string> = {
+  "מזומן": "💵",
+  "העברה בנקאית": "🏦",
+  "כרטיס אשראי": "💳",
+  "צ'ק": "📄",
 };
 
 const CATEGORIES = ["חומרים", "ציוד", "דלק", "שכר", "תחזוקה", "משרד", "ביטוח", "אחר"];
@@ -43,20 +56,37 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
   const [showForm, setShowForm] = useState(false);
   const [filterEntity, setFilterEntity] = useState<ExpenseEntity | "הכל">("הכל");
   const [saving, setSaving] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     entity: "דור" as ExpenseEntity,
     amount: "",
     description: "",
     category: "",
+    paymentMethod: "" as PaymentMethod | "",
     date: today(),
     notes: "",
+    receiptUrl: "",
+    receiptFileName: "",
   });
 
   function update(field: string, value: string) {
     setForm((p) => ({ ...p, [field]: value }));
+  }
+
+  async function handleReceiptFile(file: File) {
+    setUploadingReceipt(true);
+    try {
+      const url = await uploadReceipt(file, "expenses");
+      setForm((p) => ({ ...p, receiptUrl: url, receiptFileName: file.name }));
+    } catch {
+      setError("שגיאה בהעלאת הקובץ");
+    } finally {
+      setUploadingReceipt(false);
+    }
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -67,14 +97,23 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
     const res = await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        entity: form.entity,
+        amount: form.amount,
+        description: form.description,
+        category: form.category,
+        paymentMethod: form.paymentMethod || null,
+        date: form.date,
+        notes: form.notes,
+        receiptUrl: form.receiptUrl || null,
+      }),
     });
 
     setSaving(false);
     if (res.ok) {
       const newExpense = await res.json();
       setExpenses((p) => [newExpense, ...p]);
-      setForm({ entity: form.entity, amount: "", description: "", category: "", date: today(), notes: "" });
+      setForm({ entity: form.entity, amount: "", description: "", category: "", paymentMethod: "", date: today(), notes: "", receiptUrl: "", receiptFileName: "" });
       setShowForm(false);
     } else {
       const err = await res.json();
@@ -91,7 +130,6 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
 
   const filtered = filterEntity === "הכל" ? expenses : expenses.filter((e) => e.entity === filterEntity);
 
-  // Totals per entity
   const totals = ENTITIES.map((entity) => ({
     entity,
     total: expenses.filter((e) => e.entity === entity).reduce((s, e) => s + e.amount, 0),
@@ -175,11 +213,27 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-xs text-gray-400">{formatDate(expense.date)}</span>
                     {expense.category && <span className="text-xs text-gray-400">· {expense.category}</span>}
+                    {expense.paymentMethod && (
+                      <span className="text-xs text-gray-400">· {PAYMENT_ICONS[expense.paymentMethod]} {expense.paymentMethod}</span>
+                    )}
                     {expense.notes && <span className="text-xs text-gray-400 truncate">· {expense.notes}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-sm font-bold text-red-600">{formatCurrency(expense.amount)}</span>
+                  {expense.receiptUrl && (
+                    <a
+                      href={expense.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="פתח אסמכתא"
+                      className="text-gray-300 hover:text-blue-500 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                    </a>
+                  )}
                   <button
                     onClick={() => handleDelete(expense.id)}
                     disabled={deleting === expense.id}
@@ -199,8 +253,8 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
       {/* Add expense modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h2 className="font-bold text-gray-900">הוספת הוצאה</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,16 +325,31 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">קטגוריה</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => update("category", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                >
-                  <option value="">ללא קטגוריה</option>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">קטגוריה</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => update("category", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  >
+                    <option value="">ללא קטגוריה</option>
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">אופן תשלום</label>
+                  <select
+                    value={form.paymentMethod}
+                    onChange={(e) => update("paymentMethod", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+                  >
+                    <option value="">בחר...</option>
+                    {PAYMENT_METHODS.map((m) => (
+                      <option key={m} value={m}>{PAYMENT_ICONS[m]} {m}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -294,6 +363,62 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
                 />
               </div>
 
+              {/* Receipt upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">אסמכתא / קבלה</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleReceiptFile(file);
+                  }}
+                />
+                {form.receiptUrl ? (
+                  <div className="flex items-center gap-2 border border-green-200 bg-green-50 rounded-xl px-4 py-2.5">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm text-green-700 truncate flex-1">{form.receiptFileName || "קובץ הועלה"}</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, receiptUrl: "", receiptFileName: "" }))}
+                      className="text-green-500 hover:text-red-400 transition-colors flex-shrink-0"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingReceipt}
+                    className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl px-4 py-3 text-sm text-gray-500 hover:text-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {uploadingReceipt ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        מעלה קובץ...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        צרף קבלה / אסמכתא
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
               {error && (
                 <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-red-600 text-sm">{error}</div>
               )}
@@ -301,7 +426,7 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || uploadingReceipt}
                   className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
                 >
                   {saving ? "שומר..." : "הוסף הוצאה"}
