@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { uploadReceipt } from "@/lib/upload";
+import * as XLSX from "xlsx";
 
 type ExpenseEntity = "דור" | "שגיא" | "חברה של שגיא" | "חברה של דור";
 type PaymentMethod = "מזומן" | "העברה בנקאית" | "כרטיס אשראי" | "צ'ק";
@@ -71,10 +72,87 @@ const emptyForm = () => ({
   receiptFileName: "",
 });
 
+function exportToXlsx(rows: Expense[], label: string) {
+  const data: Record<string, string | number>[] = rows.map(e => ({
+    "תאריך": formatDate(e.date),
+    "ישות": e.entity,
+    "תיאור": e.description,
+    "קטגוריה": e.category || "",
+    "אופן תשלום": e.paymentMethod || "",
+    "כולל מעמ": e.vatIncluded === false ? "לא" : "כן",
+    "סוג": e.expenseType === "INVOICE" ? "חשבונית" : e.expenseType === "CASH" ? "מזומן" : "",
+    "סכום ₪": e.amount,
+  }));
+  // Total row
+  data.push({ "תאריך": "", "ישות": "", "תיאור": "סה\"כ", "קטגוריה": "", "אופן תשלום": "", "כולל מעמ": "", "סוג": "", "סכום ₪": rows.reduce((s, e) => s + e.amount, 0) });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws["!cols"] = [{ wch: 14 }, { wch: 16 }, { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "הוצאות");
+  XLSX.writeFile(wb, `הוצאות-${label}.xlsx`);
+}
+
+function exportToPdf(rows: Expense[], label: string, entityFilter: string) {
+  const total = rows.reduce((s, e) => s + e.amount, 0);
+  const html = `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>הוצאות ${label}</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; margin: 24px; color: #111; font-size: 13px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .meta { color: #666; margin-bottom: 16px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #1a1a1a; color: white; padding: 8px 10px; text-align: right; font-size: 12px; }
+  td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .amount { font-weight: bold; color: #dc2626; }
+  .total-row td { background: #f0fdf4 !important; font-weight: bold; border-top: 2px solid #16a34a; }
+  .total-amount { color: #16a34a; font-size: 15px; }
+  @media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+<h1>רשימת הוצאות</h1>
+<div class="meta">תקופה: ${label}${entityFilter !== "הכל" ? ` · ישות: ${entityFilter}` : ""} · ${rows.length} רשומות</div>
+<table>
+  <thead><tr>
+    <th>תאריך</th><th>ישות</th><th>תיאור</th><th>קטגוריה</th><th>אופן תשלום</th><th>מעמ</th><th>סכום</th>
+  </tr></thead>
+  <tbody>
+    ${rows.map(e => `<tr>
+      <td>${formatDate(e.date)}</td>
+      <td>${e.entity}</td>
+      <td>${e.description}${e.notes ? `<br><small style="color:#888">${e.notes}</small>` : ""}</td>
+      <td>${e.category || "—"}</td>
+      <td>${e.paymentMethod || "—"}</td>
+      <td>${e.vatIncluded === false ? `לא${e.expenseType === "INVOICE" ? " (חשב׳)" : ""}` : "כן"}</td>
+      <td class="amount">${new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(e.amount)}</td>
+    </tr>`).join("")}
+    <tr class="total-row">
+      <td colspan="6" style="text-align:left">סה"כ</td>
+      <td class="total-amount">${new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(total)}</td>
+    </tr>
+  </tbody>
+</table>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 500);
+}
+
 export default function ExpensesClient({ initialExpenses }: { initialExpenses: Expense[] }) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [showForm, setShowForm] = useState(false);
   const [filterEntity, setFilterEntity] = useState<ExpenseEntity | "הכל">("הכל");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<"receipt" | "invoice" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -151,7 +229,10 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
     setDeleting(null);
   }
 
-  const filtered = filterEntity === "הכל" ? expenses : expenses.filter((e) => e.entity === filterEntity);
+  const filtered = expenses
+    .filter((e) => filterEntity === "הכל" || e.entity === filterEntity)
+    .filter((e) => !filterFrom || e.date >= filterFrom)
+    .filter((e) => !filterTo || e.date <= filterTo);
 
   const totals = ENTITIES.map((entity) => ({
     entity,
@@ -160,22 +241,85 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
 
   const grandTotal = expenses.reduce((s, e) => s + e.amount, 0);
 
+  const exportLabel = filterFrom || filterTo
+    ? `${filterFrom || ""}${filterFrom && filterTo ? " עד " : ""}${filterTo || ""}`
+    : new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" });
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">הוצאות</h1>
           <p className="text-gray-500 text-sm mt-1">מעקב הוצאות לפי ישות</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          הוספת הוצאה
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium px-3 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              ייצוא
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                  <button
+                    onClick={() => { exportToXlsx(filtered, exportLabel); setShowExportMenu(false); }}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    ייצוא ל-Excel
+                  </button>
+                  <button
+                    onClick={() => { exportToPdf(filtered, exportLabel, filterEntity); setShowExportMenu(false); }}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    ייצוא ל-PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            הוספת הוצאה
+          </button>
+        </div>
+      </div>
+
+      {/* Date range filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-gray-400">תקופה:</span>
+        <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} dir="ltr"
+          className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+        <span className="text-xs text-gray-400">עד</span>
+        <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} dir="ltr"
+          className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+        {(filterFrom || filterTo) && (
+          <button onClick={() => { setFilterFrom(""); setFilterTo(""); }}
+            className="text-xs text-gray-400 hover:text-red-400 transition-colors">× נקה</button>
+        )}
+        {(filterFrom || filterTo) && (
+          <span className="text-xs text-gray-400 mr-auto">{filtered.length} רשומות</span>
+        )}
       </div>
 
       {/* Summary cards */}
