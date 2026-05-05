@@ -564,6 +564,80 @@ export type Invitation = {
   createdAt: string; acceptedAt: string | null;
 };
 
+export type SubscriptionType = "ביטוח" | "איתוראן" | "מנוי תוכנה" | "רישיון" | "אחר";
+export type BillingCycle = "חודשי" | "רבעוני" | "חצי שנתי" | "שנתי";
+
+export type Subscription = {
+  id: string;
+  name: string;
+  type: SubscriptionType;
+  provider: string | null;
+  amount: number;
+  billingCycle: BillingCycle;
+  nextRenewal: string;
+  notes: string | null;
+  isActive: boolean;
+  equipmentId: string | null;
+  equipmentName: string | null;
+  createdAt: string; updatedAt: string;
+};
+
+export type MaintenanceAppointment = {
+  id: string;
+  equipmentId: string;
+  equipmentName: string;
+  description: string;
+  scheduledDate: string;
+  estimatedCost: number | null;
+  status: "PENDING" | "DONE" | "CANCELLED";
+  notes: string | null;
+  createdAt: string; updatedAt: string;
+};
+
+// --- Subscriptions ---
+export async function getAllSubscriptions() {
+  const snap1 = await adminDb.collection("subscriptions").orderBy("nextRenewal", "asc").get();
+  return snap<Subscription>(snap1);
+}
+
+export async function createSubscription(data: Omit<Subscription, "id" | "createdAt" | "updatedAt">) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("subscriptions").doc(id).set(rec);
+  return rec as Subscription;
+}
+
+export async function updateSubscription(id: string, data: Partial<Subscription>) {
+  await adminDb.collection("subscriptions").doc(id).update({ ...data, updatedAt: new Date().toISOString() });
+}
+
+export async function deleteSubscription(id: string) {
+  await adminDb.collection("subscriptions").doc(id).delete();
+}
+
+// --- Maintenance Appointments ---
+export async function getAllMaintenanceAppointments() {
+  const snap1 = await adminDb.collection("maintenanceAppointments").orderBy("scheduledDate", "asc").get();
+  return snap<MaintenanceAppointment>(snap1);
+}
+
+export async function createMaintenanceAppointment(data: Omit<MaintenanceAppointment, "id" | "createdAt" | "updatedAt">) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rec = { ...data, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("maintenanceAppointments").doc(id).set(rec);
+  return rec as MaintenanceAppointment;
+}
+
+export async function updateMaintenanceAppointment(id: string, data: Partial<MaintenanceAppointment>) {
+  await adminDb.collection("maintenanceAppointments").doc(id).update({ ...data, updatedAt: new Date().toISOString() });
+}
+
+export async function deleteMaintenanceAppointment(id: string) {
+  await adminDb.collection("maintenanceAppointments").doc(id).delete();
+}
+
 // --- Expenses ---
 export async function getAllExpenses() {
   const snapshot = await adminDb.collection("expenses").orderBy("date", "desc").get();
