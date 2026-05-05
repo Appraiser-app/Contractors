@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { createSite } from "@/lib/db";
+import { createSite, getAllSites } from "@/lib/db";
 import { getUser } from "@/lib/auth";
+
+export async function GET() {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sites = await getAllSites();
+  return NextResponse.json(sites);
+}
 
 export async function POST(req: Request) {
   const user = await getUser();
