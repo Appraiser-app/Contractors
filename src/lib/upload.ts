@@ -1,12 +1,15 @@
 "use client";
 
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
-
 export async function uploadReceipt(file: File, folder: "transactions" | "equipment-expenses" | "expenses"): Promise<string> {
-  const ext = file.name.split(".").pop() || "jpg";
-  const filename = `receipts/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const storageRef = ref(storage, filename);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("folder", folder);
+
+  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Upload failed");
+  }
+  const { url } = await res.json();
+  return url;
 }
