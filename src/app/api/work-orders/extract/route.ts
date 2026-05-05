@@ -19,20 +19,22 @@ export async function POST(req: Request) {
   const base64 = Buffer.from(bytes).toString("base64");
   const mediaType = (file.type || "application/pdf") as "application/pdf";
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "document",
-            source: { type: "base64", media_type: mediaType, data: base64 },
-          },
-          {
-            type: "text",
-            text: `זוהי הזמנת עבודה/רכש. חלץ ממנה את הפרטים הבאים והחזר JSON בלבד (ללא markdown, ללא הסברים):
+  let message;
+  try {
+    message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: { type: "base64", media_type: mediaType, data: base64 },
+            },
+            {
+              type: "text",
+              text: `זוהי הזמנת עבודה/רכש. חלץ ממנה את הפרטים הבאים והחזר JSON בלבד (ללא markdown, ללא הסברים):
 {
   "orderNumber": "מספר ההזמנה",
   "clientName": "שם החברה/הלקוח שהזמין את העבודה (המוציא את ההזמנה, לא הקבלן)",
@@ -46,11 +48,16 @@ export async function POST(req: Request) {
   "orderDate": "תאריך ביצוע העבודה אם שונה מתאריך ההזמנה, אחרת null"
 }
 החזר JSON בלבד.`,
-          },
-        ],
-      },
-    ],
-  });
+            },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Anthropic API error:", msg);
+    return NextResponse.json({ error: "שגיאה בקריאת ה-AI", detail: msg }, { status: 502 });
+  }
 
   const text = message.content[0].type === "text" ? message.content[0].text : "";
   const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();

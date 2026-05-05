@@ -57,7 +57,13 @@ export default function UploadWorkOrderPage() {
     setExtracting(false);
 
     if (!res.ok) {
-      setExtractError("לא הצלחנו לקרוא את הקובץ. בדוק שזה PDF תקין.");
+      let errMsg = "לא הצלחנו לקרוא את הקובץ.";
+      try {
+        const errData = await res.json();
+        if (errData.detail) errMsg += ` (${errData.detail})`;
+        else if (errData.error) errMsg += ` ${errData.error}`;
+      } catch { /* ignore */ }
+      setExtractError(errMsg);
       return;
     }
 
