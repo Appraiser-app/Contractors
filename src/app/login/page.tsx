@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithRedirect, signInWithPopup, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
@@ -19,37 +19,19 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
-  // Handle redirect result after returning from Google OAuth
+  // Handle redirect result (mobile fallback)
   useEffect(() => {
-    setGoogleLoading(true);
     getRedirectResult(auth)
       .then(async (result) => {
-        if (!result) { setGoogleLoading(false); return; }
-        const idToken = await result.user.getIdToken();
-        // Ensure Firestore profile exists (works for both new and existing Google users)
-        await fetch("/api/auth/google-profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idToken,
-            name: result.user.displayName || result.user.email,
-            email: result.user.email,
-          }),
-        });
-        const ok = await createSession(idToken);
-        if (ok) router.push("/dashboard");
-        else { setError("שגיאה בכניסה"); setGoogleLoading(false); }
+        if (!result) return;
+        setGoogleLoading(true);
+        await finishGoogleLogin(result.user);
       })
       .catch((err: unknown) => {
         const code = (err as { code?: string })?.code || "";
-        if (code === "auth/operation-not-allowed") {
-          setError("Google Login לא מופעל — יש להפעיל ב-Firebase Console");
-        } else if (code === "auth/unauthorized-domain") {
-          setError("הדומיין לא מורשה ב-Firebase Console");
-        } else {
-          setError(`שגיאה: ${code || "לא ידועה"}`);
+        if (code && code !== "auth/no-auth-event") {
+          setError(`שגיאה: ${code}`);
         }
-        setGoogleLoading(false);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -110,23 +92,48 @@ export default function LoginPage() {
     }
   }
 
+  async function finishGoogleLogin(user: { getIdToken: () => Promise<string>; displayName: string | null; email: string | null }) {
+    const idToken = await user.getIdToken();
+    await fetch("/api/auth/google-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken, name: user.displayName || user.email, email: user.email }),
+    });
+    const ok = await createSession(idToken);
+    if (ok) router.push("/dashboard");
+    else setGoogleLoading(false);
+  }
+
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     setError("");
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
-      // Page will redirect to Google, then back — result handled in useEffect above
+      // Try popup first (more reliable on desktop)
+      const result = await signInWithPopup(auth, provider);
+      await finishGoogleLogin(result.user);
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code || "";
-      if (code === "auth/operation-not-allowed") {
-        setError("Google Login לא מופעל — יש להפעיל אותו ב-Firebase Console");
+      if (code === "auth/popup-blocked" || code === "auth/popup-cancelled-by-user") {
+        // Popup blocked — fall back to redirect
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch {
+          setError("שגיאה בהתחברות עם גוגל");
+          setGoogleLoading(false);
+        }
+      } else if (code === "auth/operation-not-allowed") {
+        setError("Google Login לא מופעל — יש להפעיל ב-Firebase Console");
+        setGoogleLoading(false);
       } else if (code === "auth/unauthorized-domain") {
         setError("הדומיין לא מורשה ב-Firebase Console");
+        setGoogleLoading(false);
+      } else if (code === "auth/cancelled-popup-request") {
+        setGoogleLoading(false); // user opened popup twice
       } else {
         setError(`שגיאה: ${code || "לא ידועה"}`);
+        setGoogleLoading(false);
       }
-      setGoogleLoading(false);
     }
   }
 
