@@ -146,13 +146,39 @@ function exportToPdf(rows: Expense[], label: string, entityFilter: string) {
   setTimeout(() => w.print(), 500);
 }
 
-export default function ExpensesClient({ initialExpenses }: { initialExpenses: Expense[] }) {
+type ExpenseArchive = {
+  id: string; name: string; notes: string | null;
+  totalAmount: number; expenseCount: number; createdAt: string;
+};
+
+export default function ExpensesClient({
+  initialExpenses,
+  initialArchives,
+  isAdmin,
+}: {
+  initialExpenses: Expense[];
+  initialArchives: ExpenseArchive[];
+  isAdmin: boolean;
+}) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [archives, setArchives] = useState<ExpenseArchive[]>(initialArchives);
   const [showForm, setShowForm] = useState(false);
   const [filterEntity, setFilterEntity] = useState<ExpenseEntity | "הכל">("הכל");
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
+  // Archive state
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveName, setArchiveName] = useState("");
+  const [archiveNotes, setArchiveNotes] = useState("");
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState("");
+  // History view state
+  const [viewingArchive, setViewingArchive] = useState<ExpenseArchive | null>(null);
+  const [archiveExpenses, setArchiveExpenses] = useState<Expense[]>([]);
+  const [loadingArchive, setLoadingArchive] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<"receipt" | "invoice" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -229,6 +255,38 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
     setDeleting(null);
   }
 
+  async function handleArchive(e: React.FormEvent) {
+    e.preventDefault();
+    if (!archiveName.trim()) return;
+    setArchiving(true);
+    setArchiveError("");
+    const res = await fetch("/api/expenses/archive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: archiveName.trim(), notes: archiveNotes || null }),
+    });
+    if (res.ok) {
+      const newArchive = await res.json();
+      setArchives((p) => [newArchive, ...p]);
+      setExpenses([]);
+      setShowArchiveModal(false);
+      setArchiveName("");
+      setArchiveNotes("");
+    } else {
+      const err = await res.json();
+      setArchiveError(err.error || "שגיאה");
+    }
+    setArchiving(false);
+  }
+
+  async function viewArchive(archive: ExpenseArchive) {
+    setViewingArchive(archive);
+    setLoadingArchive(true);
+    const res = await fetch(`/api/expenses/archives/${archive.id}`);
+    if (res.ok) setArchiveExpenses(await res.json());
+    setLoadingArchive(false);
+  }
+
   const filtered = expenses
     .filter((e) => filterEntity === "הכל" || e.entity === filterEntity)
     .filter((e) => !filterFrom || e.date >= filterFrom)
@@ -252,7 +310,31 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
           <h1 className="text-2xl font-bold text-gray-900">הוצאות</h1>
           <p className="text-gray-500 text-sm mt-1">מעקב הוצאות לפי ישות</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* History button */}
+          {archives.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium px-3 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              היסטוריה
+            </button>
+          )}
+          {/* Reset / Archive button — admin only */}
+          {isAdmin && expenses.length > 0 && (
+            <button
+              onClick={() => setShowArchiveModal(true)}
+              className="flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 font-medium px-3 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2L19 8" />
+              </svg>
+              איפוס חשבון
+            </button>
+          )}
           {/* Export dropdown */}
           <div className="relative">
             <button
@@ -428,6 +510,164 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
           </div>
         )}
       </div>
+
+      {/* Archive / Reset modal */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-gray-900">איפוס חשבון</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{expenses.length} הוצאות יועברו להיסטוריה</p>
+              </div>
+              <button onClick={() => { setShowArchiveModal(false); setArchiveError(""); }} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleArchive} className="p-5 space-y-4">
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-xs text-orange-700">
+                כל ההוצאות הנוכחיות יישמרו בארכיון ולא יימחקו. לאחר האיפוס תוכל לצפות בהן תחת "היסטוריה".
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">שם לתקופה זו *</label>
+                <input
+                  type="text"
+                  value={archiveName}
+                  onChange={e => setArchiveName(e.target.value)}
+                  required
+                  placeholder="לדוגמה: 2024, ינואר-יוני 2025..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">הערות (אופציונלי)</label>
+                <input
+                  type="text"
+                  value={archiveNotes}
+                  onChange={e => setArchiveNotes(e.target.value)}
+                  placeholder="פרטים נוספים..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+              </div>
+              {archiveError && (
+                <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 text-red-600 text-sm">{archiveError}</div>
+              )}
+              <div className="flex gap-3">
+                <button type="submit" disabled={archiving || !archiveName.trim()}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+                  {archiving ? "מעביר לארכיון..." : "אפס וארכב"}
+                </button>
+                <button type="button" onClick={() => { setShowArchiveModal(false); setArchiveError(""); }}
+                  className="px-5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl text-sm">
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* History modal */}
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-gray-900">היסטוריית חשבונות</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{archives.length} תקופות בארכיון</p>
+              </div>
+              <button onClick={() => { setShowHistory(false); setViewingArchive(null); }} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-5">
+              {viewingArchive ? (
+                /* Archived expenses list */
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <button onClick={() => setViewingArchive(null)} className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{viewingArchive.name}</h3>
+                      <p className="text-xs text-gray-400">{viewingArchive.expenseCount} הוצאות · {formatCurrency(viewingArchive.totalAmount)}</p>
+                    </div>
+                    <div className="mr-auto flex gap-2">
+                      <button onClick={() => exportToXlsx(archiveExpenses, viewingArchive.name)}
+                        className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors">
+                        <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Excel
+                      </button>
+                      <button onClick={() => exportToPdf(archiveExpenses, viewingArchive.name, "הכל")}
+                        className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors">
+                        <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        PDF
+                      </button>
+                    </div>
+                  </div>
+                  {loadingArchive ? (
+                    <div className="text-center py-8 text-gray-400 text-sm">טוען...</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {archiveExpenses.map(expense => (
+                        <div key={expense.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${ENTITY_COLORS[expense.entity]}`}>{expense.entity}</span>
+                              <p className="text-sm text-gray-800 truncate">{expense.description}</p>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-0.5">{formatDate(expense.date)}{expense.category ? ` · ${expense.category}` : ""}</p>
+                          </div>
+                          <span className="text-sm font-bold text-red-600 flex-shrink-0">{formatCurrency(expense.amount)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-3 mt-2">
+                        <span className="text-sm font-semibold text-gray-700">סה"כ</span>
+                        <span className="font-bold text-green-700">{formatCurrency(archiveExpenses.reduce((s, e) => s + e.amount, 0))}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Archives list */
+                <div className="space-y-3">
+                  {archives.map(archive => (
+                    <button key={archive.id} onClick={() => viewArchive(archive)}
+                      className="w-full text-right bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl px-4 py-3.5 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-800">{archive.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {archive.expenseCount} הוצאות · {new Date(archive.createdAt).toLocaleDateString("he-IL")}
+                          </p>
+                          {archive.notes && <p className="text-xs text-gray-400">{archive.notes}</p>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-gray-900">{formatCurrency(archive.totalAmount)}</span>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add expense modal */}
       {showForm && (

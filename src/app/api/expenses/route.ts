@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     receiptUrl: receiptUrl || null,
     notes: notes || null,
     createdById: user.id,
+    archiveId: null,
   });
 
   return NextResponse.json(expense);

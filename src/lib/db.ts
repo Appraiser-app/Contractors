@@ -543,6 +543,16 @@ export type Expense = {
   receiptUrl: string | null;
   notes: string | null;
   createdById: string | null;
+  archiveId: string | null;
+  createdAt: string;
+};
+
+export type ExpenseArchive = {
+  id: string;
+  name: string;
+  notes: string | null;
+  totalAmount: number;
+  expenseCount: number;
   createdAt: string;
 };
 
@@ -557,19 +567,60 @@ export type Invitation = {
 // --- Expenses ---
 export async function getAllExpenses() {
   const snapshot = await adminDb.collection("expenses").orderBy("date", "desc").get();
-  return snap<Expense>(snapshot);
+  const all = snap<Expense>(snapshot);
+  // Show only current (non-archived) expenses
+  return all.filter(e => !e.archiveId);
 }
 
 export async function createExpense(data: Omit<Expense, "id" | "createdAt">) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const rec = { ...data, id, createdAt: now };
+  const rec = { ...data, id, archiveId: null, createdAt: now };
   await adminDb.collection("expenses").doc(id).set(rec);
   return rec as Expense;
 }
 
 export async function deleteExpense(id: string) {
   await adminDb.collection("expenses").doc(id).delete();
+}
+
+// --- Expense Archives ---
+export async function getAllExpenseArchives() {
+  const snapshot = await adminDb.collection("expenseArchives").orderBy("createdAt", "desc").get();
+  return snap<ExpenseArchive>(snapshot);
+}
+
+export async function getExpensesByArchive(archiveId: string) {
+  const snapshot = await adminDb.collection("expenses").where("archiveId", "==", archiveId).orderBy("date", "desc").get();
+  return snap<Expense>(snapshot);
+}
+
+export async function archiveCurrentExpenses(name: string, notes: string | null) {
+  // Get all current (non-archived) expenses
+  const snapshot = await adminDb.collection("expenses").orderBy("date", "desc").get();
+  const current = snap<Expense>(snapshot).filter(e => !e.archiveId);
+
+  if (current.length === 0) throw new Error("אין הוצאות לארכיון");
+
+  const archiveId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const totalAmount = current.reduce((s, e) => s + e.amount, 0);
+
+  // Create archive record
+  const archive: ExpenseArchive = { id: archiveId, name, notes, totalAmount, expenseCount: current.length, createdAt: now };
+  await adminDb.collection("expenseArchives").doc(archiveId).set(archive);
+
+  // Update all current expenses in batches of 500
+  const batchSize = 400;
+  for (let i = 0; i < current.length; i += batchSize) {
+    const batch = adminDb.batch();
+    current.slice(i, i + batchSize).forEach(e => {
+      batch.update(adminDb.collection("expenses").doc(e.id), { archiveId });
+    });
+    await batch.commit();
+  }
+
+  return archive;
 }
 
 // --- Invitations ---
