@@ -166,6 +166,7 @@ export default function ExpensesClient({
   const [filterEntity, setFilterEntity] = useState<ExpenseEntity | "הכל">("הכל");
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
+  const [periodPreset, setPeriodPreset] = useState<string>("הכל");
   const [showExportMenu, setShowExportMenu] = useState(false);
   // Archive state
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -287,21 +288,51 @@ export default function ExpensesClient({
     setLoadingArchive(false);
   }
 
-  const filtered = expenses
-    .filter((e) => filterEntity === "הכל" || e.entity === filterEntity)
-    .filter((e) => !filterFrom || e.date >= filterFrom)
-    .filter((e) => !filterTo || e.date <= filterTo);
+  function applyPreset(preset: string) {
+    setPeriodPreset(preset);
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if (preset === "הכל") { setFilterFrom(""); setFilterTo(""); return; }
+    if (preset === "החודש") {
+      setFilterFrom(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`);
+      setFilterTo(ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
+      return;
+    }
+    if (preset === "חודש שעבר") {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      setFilterFrom(ymd(first)); setFilterTo(ymd(last)); return;
+    }
+    if (preset === "3 חודשים") {
+      const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      setFilterFrom(ymd(from)); setFilterTo(ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0))); return;
+    }
+    if (preset === "השנה") {
+      setFilterFrom(`${now.getFullYear()}-01-01`);
+      setFilterTo(`${now.getFullYear()}-12-31`); return;
+    }
+    if (preset === "בחר") { setFilterFrom(""); setFilterTo(""); }
+  }
+
+  const byDateFiltered = (list: Expense[]) =>
+    list.filter((e) => !filterFrom || e.date >= filterFrom).filter((e) => !filterTo || e.date <= filterTo);
+
+  const filtered = byDateFiltered(expenses)
+    .filter((e) => filterEntity === "הכל" || e.entity === filterEntity);
+
+  const dateFiltered = byDateFiltered(expenses);
 
   const totals = ENTITIES.map((entity) => ({
     entity,
-    total: expenses.filter((e) => e.entity === entity).reduce((s, e) => s + e.amount, 0),
+    total: dateFiltered.filter((e) => e.entity === entity).reduce((s, e) => s + e.amount, 0),
   }));
 
-  const grandTotal = expenses.reduce((s, e) => s + e.amount, 0);
+  const grandTotal = dateFiltered.reduce((s, e) => s + e.amount, 0);
 
   const exportLabel = filterFrom || filterTo
     ? `${filterFrom || ""}${filterFrom && filterTo ? " עד " : ""}${filterTo || ""}`
-    : new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" });
+    : periodPreset !== "הכל" ? periodPreset : new Date().toLocaleDateString("he-IL", { month: "long", year: "numeric" });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -387,20 +418,35 @@ export default function ExpensesClient({
         </div>
       </div>
 
-      {/* Date range filter */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-gray-400">תקופה:</span>
-        <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} dir="ltr"
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
-        <span className="text-xs text-gray-400">עד</span>
-        <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} dir="ltr"
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
-        {(filterFrom || filterTo) && (
-          <button onClick={() => { setFilterFrom(""); setFilterTo(""); }}
-            className="text-xs text-gray-400 hover:text-red-400 transition-colors">× נקה</button>
-        )}
-        {(filterFrom || filterTo) && (
-          <span className="text-xs text-gray-400 mr-auto">{filtered.length} רשומות</span>
+      {/* Period filter */}
+      <div className="mb-5">
+        <div className="flex gap-1.5 flex-wrap mb-2">
+          {["הכל", "החודש", "חודש שעבר", "3 חודשים", "השנה", "בחר"].map(p => (
+            <button key={p} onClick={() => applyPreset(p)}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+                periodPreset === p
+                  ? "bg-gray-900 text-white"
+                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}>
+              {p === "בחר" ? "טווח מותאם..." : p}
+            </button>
+          ))}
+          {(filterFrom || filterTo) && periodPreset !== "הכל" && (
+            <span className="text-xs text-gray-400 flex items-center mr-1">{filtered.length} רשומות</span>
+          )}
+        </div>
+        {periodPreset === "בחר" && (
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} dir="ltr"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+            <span className="text-xs text-gray-400">עד</span>
+            <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} dir="ltr"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-600" />
+            {(filterFrom || filterTo) && (
+              <button onClick={() => { setFilterFrom(""); setFilterTo(""); }}
+                className="text-xs text-gray-400 hover:text-red-400 transition-colors">× נקה</button>
+            )}
+          </div>
         )}
       </div>
 
@@ -421,10 +467,11 @@ export default function ExpensesClient({
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 mb-2 px-5 py-3 flex items-center justify-between">
-        <span className="text-sm text-gray-500">סה"כ {filterEntity === "הכל" ? "כולל" : filterEntity}</span>
-        <span className="font-bold text-gray-900">
-          {formatCurrency(filterEntity === "הכל" ? grandTotal : filtered.reduce((s, e) => s + e.amount, 0))}
+        <span className="text-sm text-gray-500">
+          סה"כ {filterEntity !== "הכל" ? filterEntity : ""}
+          {periodPreset !== "הכל" ? ` · ${periodPreset === "בחר" ? `${filterFrom || ""}–${filterTo || ""}` : periodPreset}` : ""}
         </span>
+        <span className="font-bold text-gray-900">{formatCurrency(filtered.reduce((s, e) => s + e.amount, 0))}</span>
       </div>
 
       {/* Filter pills */}
