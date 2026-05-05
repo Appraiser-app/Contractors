@@ -13,6 +13,9 @@ type Expense = {
   description: string;
   category: string | null;
   paymentMethod: PaymentMethod | null;
+  vatIncluded: boolean | null;
+  expenseType: "CASH" | "INVOICE" | null;
+  invoiceUrl: string | null;
   date: string;
   receiptUrl: string | null;
   notes: string | null;
@@ -38,6 +41,7 @@ const PAYMENT_ICONS: Record<PaymentMethod, string> = {
 };
 
 const CATEGORIES = ["חומרים", "ציוד", "דלק", "שכר", "תחזוקה", "משרד", "ביטוח", "אחר"];
+const VAT_RATE = 0.17;
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n);
@@ -51,41 +55,57 @@ function today() {
   return new Date().toISOString().split("T")[0];
 }
 
+const emptyForm = () => ({
+  entity: "דור" as ExpenseEntity,
+  amount: "",
+  description: "",
+  category: "",
+  paymentMethod: "" as PaymentMethod | "",
+  vatIncluded: true,          // true = sum includes VAT, false = sum is net (ex-VAT)
+  expenseType: "" as "CASH" | "INVOICE" | "",  // only when vatIncluded=false
+  invoiceUrl: "",
+  invoiceFileName: "",
+  date: today(),
+  notes: "",
+  receiptUrl: "",
+  receiptFileName: "",
+});
+
 export default function ExpensesClient({ initialExpenses }: { initialExpenses: Expense[] }) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [showForm, setShowForm] = useState(false);
   const [filterEntity, setFilterEntity] = useState<ExpenseEntity | "הכל">("הכל");
   const [saving, setSaving] = useState(false);
-  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<"receipt" | "invoice" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const receiptRef = useRef<HTMLInputElement>(null);
+  const invoiceRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({
-    entity: "דור" as ExpenseEntity,
-    amount: "",
-    description: "",
-    category: "",
-    paymentMethod: "" as PaymentMethod | "",
-    date: today(),
-    notes: "",
-    receiptUrl: "",
-    receiptFileName: "",
-  });
+  const [form, setForm] = useState(emptyForm());
 
-  function update(field: string, value: string) {
+  function update<K extends keyof ReturnType<typeof emptyForm>>(field: K, value: ReturnType<typeof emptyForm>[K]) {
     setForm((p) => ({ ...p, [field]: value }));
   }
 
-  async function handleReceiptFile(file: File) {
-    setUploadingReceipt(true);
+  // VAT calculation (only meaningful when vatIncluded=false)
+  const numericAmount = parseFloat(form.amount) || 0;
+  const vatAmount = Math.round(numericAmount * VAT_RATE);
+  const totalWithVat = numericAmount + vatAmount;
+
+  async function handleFileUpload(file: File, type: "receipt" | "invoice") {
+    setUploadingFile(type);
     try {
       const url = await uploadReceipt(file, "expenses");
-      setForm((p) => ({ ...p, receiptUrl: url, receiptFileName: file.name }));
+      if (type === "receipt") {
+        setForm((p) => ({ ...p, receiptUrl: url, receiptFileName: file.name }));
+      } else {
+        setForm((p) => ({ ...p, invoiceUrl: url, invoiceFileName: file.name }));
+      }
     } catch {
       setError("שגיאה בהעלאת הקובץ");
     } finally {
-      setUploadingReceipt(false);
+      setUploadingFile(null);
     }
   }
 
@@ -101,10 +121,13 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
         entity: form.entity,
         amount: form.amount,
         description: form.description,
-        category: form.category,
+        category: form.category || null,
         paymentMethod: form.paymentMethod || null,
+        vatIncluded: form.vatIncluded,
+        expenseType: !form.vatIncluded ? (form.expenseType || null) : null,
+        invoiceUrl: !form.vatIncluded && form.expenseType === "INVOICE" ? (form.invoiceUrl || null) : null,
         date: form.date,
-        notes: form.notes,
+        notes: form.notes || null,
         receiptUrl: form.receiptUrl || null,
       }),
     });
@@ -113,7 +136,7 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
     if (res.ok) {
       const newExpense = await res.json();
       setExpenses((p) => [newExpense, ...p]);
-      setForm({ entity: form.entity, amount: "", description: "", category: "", paymentMethod: "", date: today(), notes: "", receiptUrl: "", receiptFileName: "" });
+      setForm(emptyForm());
       setShowForm(false);
     } else {
       const err = await res.json();
@@ -216,19 +239,31 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
                     {expense.paymentMethod && (
                       <span className="text-xs text-gray-400">· {PAYMENT_ICONS[expense.paymentMethod]} {expense.paymentMethod}</span>
                     )}
+                    {expense.vatIncluded === false && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        expense.expenseType === "INVOICE"
+                          ? "bg-indigo-100 text-indigo-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {expense.expenseType === "INVOICE" ? "📋 חשבונית" : "💵 מזומן"} ללא מעמ
+                      </span>
+                    )}
                     {expense.notes && <span className="text-xs text-gray-400 truncate">· {expense.notes}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-sm font-bold text-red-600">{formatCurrency(expense.amount)}</span>
+                  {expense.invoiceUrl && (
+                    <a href={expense.invoiceUrl} target="_blank" rel="noopener noreferrer" title="פתח חשבונית"
+                      className="text-indigo-300 hover:text-indigo-600 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </a>
+                  )}
                   {expense.receiptUrl && (
-                    <a
-                      href={expense.receiptUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="פתח אסמכתא"
-                      className="text-gray-300 hover:text-blue-500 transition-colors"
-                    >
+                    <a href={expense.receiptUrl} target="_blank" rel="noopener noreferrer" title="פתח קבלה"
+                      className="text-gray-300 hover:text-blue-500 transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                       </svg>
@@ -253,10 +288,10 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
       {/* Add expense modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h2 className="font-bold text-gray-900">הוספת הוצאה</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowForm(false); setForm(emptyForm()); }} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -269,16 +304,12 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
                 <label className="block text-sm font-medium text-gray-700 mb-2">מי הוציא *</label>
                 <div className="grid grid-cols-2 gap-2">
                   {ENTITIES.map((entity) => (
-                    <button
-                      key={entity}
-                      type="button"
-                      onClick={() => update("entity", entity)}
+                    <button key={entity} type="button" onClick={() => update("entity", entity)}
                       className={`text-sm font-medium py-2.5 px-3 rounded-xl border transition-all ${
                         form.entity === entity
                           ? "border-green-500 bg-green-50 text-green-700"
                           : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
+                      }`}>
                       {entity}
                     </button>
                   ))}
@@ -287,133 +318,185 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">תיאור ההוצאה *</label>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  required
-                  placeholder="קניית חומרים, דלק..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                />
+                <input type="text" value={form.description} onChange={(e) => update("description", e.target.value)}
+                  required placeholder="קניית חומרים, דלק..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent" />
+              </div>
+
+              {/* Amount + VAT toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">סכום (₪) *</label>
+                <input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)}
+                  required min="0" step="0.01" placeholder="0" dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent" />
+
+                {/* VAT status toggle */}
+                <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => update("vatIncluded", true)}
+                    className={`flex-1 text-xs font-medium py-2 rounded-xl border transition-all ${
+                      form.vatIncluded
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}>
+                    כולל מעמ
+                  </button>
+                  <button type="button" onClick={() => update("vatIncluded", false)}
+                    className={`flex-1 text-xs font-medium py-2 rounded-xl border transition-all ${
+                      !form.vatIncluded
+                        ? "border-orange-400 bg-orange-50 text-orange-700"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}>
+                    לא כולל מעמ
+                  </button>
+                </div>
+
+                {/* VAT breakdown (shown when NOT including VAT and amount is entered) */}
+                {!form.vatIncluded && numericAmount > 0 && (
+                  <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 space-y-1.5">
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>סכום נטו (ללא מעמ)</span>
+                      <span dir="ltr">{formatCurrency(numericAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>מעמ 17%</span>
+                      <span dir="ltr">{formatCurrency(vatAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-orange-800 pt-1 border-t border-orange-200">
+                      <span>סה"כ לתשלום</span>
+                      <span dir="ltr">{formatCurrency(totalWithVat)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Expense type — only when NOT including VAT */}
+                {!form.vatIncluded && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">סוג הוצאה *</label>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => update("expenseType", "CASH")}
+                        className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-xl border transition-all ${
+                          form.expenseType === "CASH"
+                            ? "border-blue-500 bg-blue-50 text-blue-700"
+                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                        }`}>
+                        <span>💵</span> מזומן
+                      </button>
+                      <button type="button" onClick={() => update("expenseType", "INVOICE")}
+                        className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-xl border transition-all ${
+                          form.expenseType === "INVOICE"
+                            ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                        }`}>
+                        <span>📋</span> כנגד חשבונית
+                      </button>
+                    </div>
+
+                    {/* Invoice upload — only for INVOICE type */}
+                    {form.expenseType === "INVOICE" && (
+                      <div className="mt-2">
+                        <input ref={invoiceRef} type="file" accept="image/*,.pdf" className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, "invoice"); }} />
+                        {form.invoiceUrl ? (
+                          <div className="flex items-center gap-2 border border-indigo-200 bg-indigo-50 rounded-xl px-3 py-2">
+                            <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-xs text-indigo-700 truncate flex-1">{form.invoiceFileName || "חשבונית הועלתה"}</span>
+                            <button type="button" onClick={() => setForm((p) => ({ ...p, invoiceUrl: "", invoiceFileName: "" }))}
+                              className="text-indigo-400 hover:text-red-400 flex-shrink-0">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => invoiceRef.current?.click()}
+                            disabled={uploadingFile === "invoice"}
+                            className="w-full border-2 border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl px-4 py-2.5 text-xs text-indigo-500 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                            {uploadingFile === "invoice" ? (
+                              <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>מעלה...</>
+                            ) : (
+                              <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>צרף חשבונית (תמונה / PDF)</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">סכום (₪) *</label>
-                  <input
-                    type="number"
-                    value={form.amount}
-                    onChange={(e) => update("amount", e.target.value)}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="0"
-                    dir="ltr"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">תאריך *</label>
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => update("date", e.target.value)}
-                    required
-                    dir="ltr"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                  />
+                  <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)}
+                    required dir="ltr"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent" />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">קטגוריה</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => update("category", e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                  >
+                  <select value={form.category} onChange={(e) => update("category", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
                     <option value="">ללא קטגוריה</option>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">אופן תשלום</label>
-                  <select
-                    value={form.paymentMethod}
-                    onChange={(e) => update("paymentMethod", e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                  >
-                    <option value="">בחר...</option>
-                    {PAYMENT_METHODS.map((m) => (
-                      <option key={m} value={m}>{PAYMENT_ICONS[m]} {m}</option>
-                    ))}
                   </select>
                 </div>
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">אופן תשלום</label>
+                <select value={form.paymentMethod} onChange={(e) => update("paymentMethod", e.target.value as PaymentMethod | "")}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                  <option value="">בחר...</option>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>{PAYMENT_ICONS[m]} {m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">הערות</label>
-                <input
-                  type="text"
-                  value={form.notes}
-                  onChange={(e) => update("notes", e.target.value)}
+                <input type="text" value={form.notes} onChange={(e) => update("notes", e.target.value)}
                   placeholder="פרטים נוספים..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent" />
               </div>
 
               {/* Receipt upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">אסמכתא / קבלה</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleReceiptFile(file);
-                  }}
-                />
+                <input ref={receiptRef} type="file" accept="image/*,.pdf" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, "receipt"); }} />
                 {form.receiptUrl ? (
                   <div className="flex items-center gap-2 border border-green-200 bg-green-50 rounded-xl px-4 py-2.5">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     <span className="text-sm text-green-700 truncate flex-1">{form.receiptFileName || "קובץ הועלה"}</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, receiptUrl: "", receiptFileName: "" }))}
-                      className="text-green-500 hover:text-red-400 transition-colors flex-shrink-0"
-                    >
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, receiptUrl: "", receiptFileName: "" }))}
+                      className="text-green-500 hover:text-red-400 transition-colors flex-shrink-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingReceipt}
-                    className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl px-4 py-3 text-sm text-gray-500 hover:text-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {uploadingReceipt ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        מעלה קובץ...
-                      </>
+                  <button type="button" onClick={() => receiptRef.current?.click()}
+                    disabled={uploadingFile === "receipt"}
+                    className="w-full border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl px-4 py-3 text-sm text-gray-500 hover:text-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                    {uploadingFile === "receipt" ? (
+                      <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>מעלה קובץ...</>
                     ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                        צרף קבלה / אסמכתא
-                      </>
+                      <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>צרף קבלה / אסמכתא</>
                     )}
                   </button>
                 )}
@@ -424,18 +507,12 @@ export default function ExpensesClient({ initialExpenses }: { initialExpenses: E
               )}
 
               <div className="flex gap-3 pt-1">
-                <button
-                  type="submit"
-                  disabled={saving || uploadingReceipt}
-                  className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
-                >
+                <button type="submit" disabled={saving || uploadingFile !== null}
+                  className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-200 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
                   {saving ? "שומר..." : "הוסף הוצאה"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl text-sm"
-                >
+                <button type="button" onClick={() => { setShowForm(false); setForm(emptyForm()); }}
+                  className="px-5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl text-sm">
                   ביטול
                 </button>
               </div>

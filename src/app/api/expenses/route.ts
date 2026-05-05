@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { entity, amount, description, category, paymentMethod, date, notes, receiptUrl } = body;
+  const { entity, amount, description, category, paymentMethod, vatIncluded, expenseType, invoiceUrl, date, notes, receiptUrl } = body;
 
   if (!entity || !amount || !description || !date) {
     return NextResponse.json({ error: "חסרים שדות חובה" }, { status: 400 });
@@ -26,6 +26,9 @@ export async function POST(req: Request) {
     description,
     category: category || null,
     paymentMethod: paymentMethod || null,
+    vatIncluded: vatIncluded ?? null,
+    expenseType: expenseType || null,
+    invoiceUrl: invoiceUrl || null,
     date,
     receiptUrl: receiptUrl || null,
     notes: notes || null,

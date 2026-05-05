@@ -476,6 +476,9 @@ export type Expense = {
   description: string;
   category: string | null;
   paymentMethod: PaymentMethod | null;
+  vatIncluded: boolean | null;
+  expenseType: "CASH" | "INVOICE" | null;
+  invoiceUrl: string | null;
   date: string;
   receiptUrl: string | null;
   notes: string | null;
