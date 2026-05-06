@@ -759,3 +759,24 @@ export async function getUserActivities(userId: string, limit = 50): Promise<Use
     .get();
   return snap<UserActivity>(snapshot);
 }
+
+// --- All Fuel Logs (cross-equipment) ---
+export async function getAllFuelLogs(): Promise<FuelLog[]> {
+  const [fuelSnap, equipSnap, sitesSnap] = await Promise.all([
+    adminDb.collection("fuelLogs").orderBy("date", "desc").get(),
+    adminDb.collection("equipment").get(),
+    adminDb.collection("sites").get(),
+  ]);
+
+  const equipMap: Record<string, string> = {};
+  equipSnap.docs.forEach(d => { equipMap[d.id] = d.data().name; });
+
+  const sitesMap: Record<string, { id: string; name: string; location: string | null }> = {};
+  sitesSnap.docs.forEach(d => { sitesMap[d.id] = { id: d.id, name: d.data().name, location: d.data().location || null }; });
+
+  return snap<FuelLog>(fuelSnap).map(r => ({
+    ...r,
+    equipmentName: equipMap[r.equipmentId] || null,
+    workSite: r.workSiteId ? (sitesMap[r.workSiteId] || null) : null,
+  })) as (FuelLog & { equipmentName?: string | null })[];
+}
