@@ -3,6 +3,69 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type UserPermissions = {
+  sites: boolean;
+  expenses: boolean;
+  transactions: boolean;
+  approveTransactions: boolean;
+  equipment: boolean;
+  fuel: boolean;
+  reports: boolean;
+  documents: boolean;
+  collection: boolean;
+  subscriptions: boolean;
+  canDelete: boolean;
+};
+
+type UserRole = "ADMIN" | "MANAGER" | "SECRETARY";
+
+const DEFAULT_PERMISSIONS: Record<UserRole, UserPermissions> = {
+  ADMIN: {
+    sites: true, expenses: true, transactions: true, approveTransactions: true,
+    equipment: true, fuel: true, reports: true, documents: true,
+    collection: true, subscriptions: true, canDelete: true,
+  },
+  MANAGER: {
+    sites: true, expenses: true, transactions: true, approveTransactions: true,
+    equipment: true, fuel: true, reports: true, documents: true,
+    collection: true, subscriptions: true, canDelete: true,
+  },
+  SECRETARY: {
+    sites: true, expenses: true, transactions: true, approveTransactions: false,
+    equipment: true, fuel: true, reports: false, documents: true,
+    collection: false, subscriptions: false, canDelete: false,
+  },
+};
+
+const PERMISSION_GROUPS: { key: string; items: { key: keyof UserPermissions; label: string }[] }[] = [
+  {
+    key: "אתרים ועסקאות",
+    items: [
+      { key: "sites", label: "אתרי עבודה" },
+      { key: "transactions", label: "עסקאות" },
+      { key: "approveTransactions", label: "אישור עסקאות" },
+      { key: "collection", label: "גבייה" },
+    ],
+  },
+  {
+    key: "הוצאות וציוד",
+    items: [
+      { key: "expenses", label: "הוצאות" },
+      { key: "equipment", label: "ציוד" },
+      { key: "fuel", label: "דלק ותדלוקים" },
+      { key: "subscriptions", label: "מנויים וטיפולים" },
+    ],
+  },
+  {
+    key: "מידע ומסמכים",
+    items: [
+      { key: "reports", label: "דוחות" },
+      { key: "documents", label: "מסמכים" },
+      { key: "canDelete", label: "מחיקת רשומות" },
+    ],
+  },
+];
+
 type User = {
   id: string;
   email: string;
@@ -10,6 +73,7 @@ type User = {
   role: string;
   isSuperAdmin?: boolean | null;
   isActive?: boolean | null;
+  permissions?: UserPermissions | null;
   createdAt: Date | string;
 };
 
@@ -23,10 +87,11 @@ type Invitation = {
   acceptedAt: string | null;
 };
 
-const ROLE_LABELS: Record<string, string> = { ADMIN: "מנהל", SECRETARY: "פקיד/ה" };
-const ROLE_DESC: Record<string, string> = {
-  ADMIN: "גישה מלאה — יכול לנהל משתמשים, לאשר עסקאות, לערוך ולמחוק הכל",
-  SECRETARY: "גישה חלקית — יכול להוסיף נתונים, לא יכול לאשר עסקאות או לנהל משתמשים",
+const ROLE_LABELS: Record<string, string> = { ADMIN: "מנהל", MANAGER: "מנהל פרויקט", SECRETARY: "פקיד/ה" };
+const ROLE_COLORS: Record<string, string> = {
+  ADMIN: "bg-purple-100 text-purple-700",
+  MANAGER: "bg-orange-100 text-orange-700",
+  SECRETARY: "bg-blue-100 text-blue-600",
 };
 
 function CopyButton({ text, label = "העתק" }: { text: string; label?: string }) {
@@ -56,6 +121,19 @@ function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg"
   );
 }
 
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${checked ? "bg-green-500" : "bg-slate-200"} ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
+    </button>
+  );
+}
+
 function UserDetailModal({ user, currentUserId, onClose, onUpdate, onDelete }: {
   user: User;
   currentUserId: string;
@@ -66,28 +144,66 @@ function UserDetailModal({ user, currentUserId, onClose, onUpdate, onDelete }: {
   const isMe = user.id === currentUserId;
   const isSA = user.isSuperAdmin;
   const isActive = user.isActive !== false;
-  const [role, setRole] = useState(user.role);
+
+  const [role, setRole] = useState<UserRole>((user.role as UserRole) || "SECRETARY");
+  const [permissions, setPermissions] = useState<UserPermissions>(
+    user.permissions ?? DEFAULT_PERMISSIONS[role as UserRole] ?? DEFAULT_PERMISSIONS.SECRETARY
+  );
   const [savingRole, setSavingRole] = useState(false);
+  const [savingPerms, setSavingPerms] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [loadingReset, setLoadingReset] = useState(false);
   const [resetError, setResetError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [permsSaved, setPermsSaved] = useState(false);
 
   const canEdit = !isSA && !isMe;
+  const roleChanged = role !== user.role;
+  // Show custom permission toggles only for non-ADMIN roles (ADMIN always has all)
+  const showPerms = role !== "ADMIN";
+
+  function handleRoleChange(newRole: UserRole) {
+    setRole(newRole);
+    // Auto-fill permissions from defaults when role changes
+    setPermissions(DEFAULT_PERMISSIONS[newRole]);
+  }
 
   async function saveRole() {
-    if (role === user.role) return;
+    if (!roleChanged) return;
     setSavingRole(true);
-    const res = await fetch(`/api/users/${user.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role }) });
+    const res = await fetch(`/api/users/${user.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
     if (res.ok) onUpdate(user.id, { role });
     setSavingRole(false);
   }
 
+  async function savePermissions() {
+    setSavingPerms(true);
+    const res = await fetch(`/api/users/${user.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ permissions }),
+    });
+    if (res.ok) {
+      onUpdate(user.id, { permissions });
+      setPermsSaved(true);
+      setTimeout(() => setPermsSaved(false), 2500);
+    }
+    setSavingPerms(false);
+  }
+
   async function toggleActive() {
     setTogglingActive(true);
-    const res = await fetch(`/api/users/${user.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !isActive }) });
+    const res = await fetch(`/api/users/${user.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !isActive }),
+    });
     if (res.ok) onUpdate(user.id, { isActive: !isActive });
     setTogglingActive(false);
   }
@@ -142,19 +258,20 @@ function UserDetailModal({ user, currentUserId, onClose, onUpdate, onDelete }: {
             <span className="text-sm font-medium text-slate-700">{isActive ? "חשבון פעיל" : "חשבון מושבת"}</span>
           </div>
 
-          {/* Permissions */}
+          {/* Role */}
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">הרשאות</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">תפקיד</p>
             <div className="space-y-2">
-              {[
-                { label: "מנהל", value: "ADMIN", desc: ROLE_DESC.ADMIN, color: "border-purple-300 bg-purple-50" },
-                { label: "פקיד/ה", value: "SECRETARY", desc: ROLE_DESC.SECRETARY, color: "border-blue-300 bg-blue-50" },
-              ].map(opt => (
+              {([
+                { value: "ADMIN", label: "מנהל", desc: "גישה מלאה להכל — כולל ניהול משתמשים ואישור עסקאות", color: "border-purple-300 bg-purple-50" },
+                { value: "MANAGER", label: "מנהל פרויקט", desc: "ניהול אתרים, ציוד ועסקאות — ניתן להגדיר הרשאות מפורטות", color: "border-orange-300 bg-orange-50" },
+                { value: "SECRETARY", label: "פקיד/ה", desc: "הזנת נתונים בלבד — ניתן להגדיר הרשאות מפורטות", color: "border-blue-300 bg-blue-50" },
+              ] as { value: UserRole; label: string; desc: string; color: string }[]).map(opt => (
                 <label key={opt.value}
                   className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all ${canEdit ? "cursor-pointer" : "cursor-default"} ${role === opt.value ? opt.color : "border-slate-200 bg-white"}`}>
                   <input type="radio" name="role" value={opt.value} checked={role === opt.value}
                     disabled={!canEdit}
-                    onChange={e => setRole(e.target.value)}
+                    onChange={() => handleRoleChange(opt.value)}
                     className="mt-1 accent-purple-600" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
@@ -163,13 +280,45 @@ function UserDetailModal({ user, currentUserId, onClose, onUpdate, onDelete }: {
                 </label>
               ))}
             </div>
-            {canEdit && role !== user.role && (
+            {canEdit && roleChanged && (
               <button onClick={saveRole} disabled={savingRole}
                 className="mt-2 w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-sm transition-colors">
-                {savingRole ? "שומר..." : "שמור הרשאה"}
+                {savingRole ? "שומר..." : "שמור תפקיד"}
               </button>
             )}
           </div>
+
+          {/* Granular Permissions (only for non-ADMIN) */}
+          {showPerms && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">הרשאות מפורטות</p>
+              <div className="space-y-4">
+                {PERMISSION_GROUPS.map(group => (
+                  <div key={group.key}>
+                    <p className="text-[11px] font-semibold text-slate-400 mb-2">{group.key}</p>
+                    <div className="bg-slate-50 rounded-xl divide-y divide-slate-100">
+                      {group.items.map(item => (
+                        <div key={item.key} className="flex items-center justify-between px-3 py-2.5">
+                          <span className="text-sm text-slate-700">{item.label}</span>
+                          <Toggle
+                            checked={permissions[item.key]}
+                            onChange={v => setPermissions(p => ({ ...p, [item.key]: v }))}
+                            disabled={!canEdit}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {canEdit && (
+                <button onClick={savePermissions} disabled={savingPerms}
+                  className={`mt-3 w-full font-semibold py-2 rounded-xl text-sm transition-colors ${permsSaved ? "bg-green-100 text-green-700" : "bg-slate-800 hover:bg-slate-700 text-white"} disabled:opacity-50`}>
+                  {savingPerms ? "שומר..." : permsSaved ? "✓ הרשאות נשמרו" : "שמור הרשאות"}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Password reset */}
           <div>
@@ -248,6 +397,7 @@ export default function UserManagement({ users: initialUsers, currentUserId }: {
   const [tab, setTab] = useState<"users" | "invitations">("users");
 
   const admins = users.filter(u => u.role === "ADMIN");
+  const managers = users.filter(u => u.role === "MANAGER");
   const secretaries = users.filter(u => u.role === "SECRETARY");
   const active = users.filter(u => u.isActive !== false);
   const pendingInvitations = (invitations ?? []).filter(i => i.status === "PENDING");
@@ -317,7 +467,7 @@ export default function UserManagement({ users: initialUsers, currentUserId }: {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
           { label: "סה״כ", value: users.length, color: "text-slate-700", bg: "bg-white", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
-          { label: "מנהלים", value: admins.length, color: "text-purple-700", bg: "bg-purple-50", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
+          { label: "מנהלים", value: admins.length + managers.length, color: "text-purple-700", bg: "bg-purple-50", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
           { label: "פקידים", value: secretaries.length, color: "text-blue-700", bg: "bg-blue-50", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
           { label: "פעילים", value: active.length, color: "text-green-700", bg: "bg-green-50", icon: "M5 13l4 4L19 7" },
         ].map(s => (
@@ -362,7 +512,7 @@ export default function UserManagement({ users: initialUsers, currentUserId }: {
                       <span className="font-semibold text-slate-800 text-sm">{user.name || "—"}</span>
                       {isMe && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">אתה</span>}
                       {isSA && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-semibold">מנהל ראשי</span>}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${user.role === "ADMIN" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-600"}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] ?? "bg-slate-100 text-slate-600"}`}>
                         {ROLE_LABELS[user.role] ?? user.role}
                       </span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
@@ -486,10 +636,11 @@ export default function UserManagement({ users: initialUsers, currentUserId }: {
                       className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">הרשאה</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-2">תפקיד</label>
                     <div className="space-y-2">
                       {[
-                        { value: "SECRETARY", label: "פקיד/ה", desc: "הוספת נתונים בלבד" },
+                        { value: "SECRETARY", label: "פקיד/ה", desc: "הזנת נתונים בלבד" },
+                        { value: "MANAGER", label: "מנהל פרויקט", desc: "ניהול אתרים וציוד" },
                         { value: "ADMIN", label: "מנהל", desc: "הרשאות מלאות" },
                       ].map(opt => (
                         <label key={opt.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${inviteForm.role === opt.value ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"}`}>

@@ -21,15 +21,19 @@ export async function getAllProfiles() {
   return snap<Profile>(snapshot);
 }
 
-export async function createProfile(profile: { id: string; email: string; name: string; role: "ADMIN" | "SECRETARY" }) {
+export async function createProfile(profile: { id: string; email: string; name: string; role: UserRole }) {
   const now = new Date().toISOString();
   const data = { ...profile, googleRefreshToken: null, createdAt: now, updatedAt: now };
   await adminDb.collection("profiles").doc(profile.id).set(data);
   return data as Profile;
 }
 
-export async function updateProfileRole(id: string, role: "ADMIN" | "SECRETARY") {
+export async function updateProfileRole(id: string, role: UserRole) {
   await adminDb.collection("profiles").doc(id).update({ role, updatedAt: new Date().toISOString() });
+}
+
+export async function updateProfilePermissions(id: string, permissions: UserPermissions) {
+  await adminDb.collection("profiles").doc(id).update({ permissions, updatedAt: new Date().toISOString() });
 }
 
 export async function updateProfileActive(id: string, isActive: boolean) {
@@ -412,10 +416,45 @@ export async function markAllNotificationsRead(userId: string) {
 }
 
 // --- Types ---
+export type UserRole = "ADMIN" | "MANAGER" | "SECRETARY";
+
+export type UserPermissions = {
+  sites: boolean;
+  expenses: boolean;
+  transactions: boolean;
+  approveTransactions: boolean;
+  equipment: boolean;
+  fuel: boolean;
+  reports: boolean;
+  documents: boolean;
+  collection: boolean;
+  subscriptions: boolean;
+  canDelete: boolean;
+};
+
+export const DEFAULT_PERMISSIONS: Record<UserRole, UserPermissions> = {
+  ADMIN: {
+    sites: true, expenses: true, transactions: true, approveTransactions: true,
+    equipment: true, fuel: true, reports: true, documents: true,
+    collection: true, subscriptions: true, canDelete: true,
+  },
+  MANAGER: {
+    sites: true, expenses: true, transactions: true, approveTransactions: true,
+    equipment: true, fuel: true, reports: true, documents: true,
+    collection: true, subscriptions: true, canDelete: true,
+  },
+  SECRETARY: {
+    sites: true, expenses: true, transactions: true, approveTransactions: false,
+    equipment: true, fuel: true, reports: false, documents: true,
+    collection: false, subscriptions: false, canDelete: false,
+  },
+};
+
 export type Profile = {
-  id: string; email: string; name: string; role: "ADMIN" | "SECRETARY";
+  id: string; email: string; name: string; role: UserRole;
   isSuperAdmin: boolean | null;
   isActive: boolean | null;
+  permissions?: UserPermissions | null;
   googleRefreshToken: string | null;
   createdAt: string; updatedAt: string;
 };

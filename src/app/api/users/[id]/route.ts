@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateProfileRole, updateProfileActive, deleteProfile, getProfileById } from "@/lib/db";
+import { updateProfileRole, updateProfileActive, updateProfilePermissions, deleteProfile, getProfileById, UserRole, UserPermissions } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 import { adminAuth } from "@/lib/firebase-admin";
 
@@ -23,9 +23,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     if ("isActive" in body) {
       await updateProfileActive(id, Boolean(body.isActive));
+    } else if ("permissions" in body) {
+      await updateProfilePermissions(id, body.permissions as UserPermissions);
     } else {
       const { role } = body;
-      await updateProfileRole(id, role === "ADMIN" ? "ADMIN" : "SECRETARY");
+      const validRoles: UserRole[] = ["ADMIN", "MANAGER", "SECRETARY"];
+      const safeRole: UserRole = validRoles.includes(role) ? role : "SECRETARY";
+      await updateProfileRole(id, safeRole);
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
