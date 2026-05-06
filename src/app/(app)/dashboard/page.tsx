@@ -1,5 +1,5 @@
 import { requireAuth, getProfile } from "@/lib/auth";
-import { getAllSites, getAllTransactions, getAllEquipment } from "@/lib/db";
+import { getAllSites, getAllTransactions, getAllEquipment, getAllExpenses } from "@/lib/db";
 import Link from "next/link";
 
 function formatCurrency(amount: number) {
@@ -23,19 +23,27 @@ export default async function DashboardPage() {
   await requireAuth();
   const profile = await getProfile();
 
-  const [sites, allTransactions, equipment] = await Promise.all([
+  const [sites, allTransactions, equipment, expenses] = await Promise.all([
     getAllSites(),
     getAllTransactions(),
     getAllEquipment(),
+    getAllExpenses(),
   ]);
 
   const totalIncome = allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-  const totalExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+  const txExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+  const generalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalExpense = txExpense + generalExpenses;
   const totalBalance = totalIncome - totalExpense;
   const activeSites = sites.filter(s => s.status === "ACTIVE").length;
-  const recentTransactions = [...allTransactions]
+  // Merge transactions + general expenses into one recent list
+  const allActivity = [
+    ...allTransactions.map(t => ({ id: t.id, type: t.type as "INCOME" | "EXPENSE", amount: t.amount, description: t.description, date: t.date, siteName: t.workSite?.name || null, source: "transaction" as const })),
+    ...expenses.map(e => ({ id: e.id, type: "EXPENSE" as const, amount: e.amount, description: e.description, date: e.date, siteName: e.entity || null, source: "expense" as const })),
+  ];
+  const recentTransactions = [...allActivity]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 8);
+    .slice(0, 10);
 
   const expiringInsurances = equipment.flatMap(eq =>
     (eq.insurances || [])
@@ -199,7 +207,10 @@ export default async function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-800">{t.description}</p>
-                      <p className="text-xs text-gray-400">{t.workSite?.name || ""} · {formatDate(t.date)}</p>
+                      <p className="text-xs text-gray-400">
+                        {t.siteName ? `${t.siteName} · ` : ""}{formatDate(t.date)}
+                        {t.source === "expense" && <span className="mr-1 text-slate-400">• הוצאה כללית</span>}
+                      </p>
                     </div>
                   </div>
                   <span className={`text-sm font-bold ${t.type === "INCOME" ? "text-green-600" : "text-red-500"}`}>
