@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createTransaction, getAllProfiles, getProfileById, createNotification, getAllTransactions } from "@/lib/db";
+import { createTransaction, getAllProfiles, getProfileById, createNotification, getAllTransactions, logActivity } from "@/lib/db";
 import { getUser } from "@/lib/auth";
 
 export async function GET() {
@@ -33,7 +33,6 @@ export async function POST(req: Request) {
       approvalStatus: "PENDING",
     });
 
-    // Notify all other users
     const [allProfiles, creator] = await Promise.all([
       getAllProfiles(),
       getProfileById(user.id),
@@ -55,6 +54,8 @@ export async function POST(req: Request) {
           })
         )
     );
+
+    logActivity({ userId: user.id, userName: creatorName, userEmail: creator?.email || "", action: `הוסיף ${typeLabel}`, resource: "transaction", resourceId: transaction.id, resourceName: description }).catch(() => {});
 
     return NextResponse.json(transaction);
   } catch (e) {

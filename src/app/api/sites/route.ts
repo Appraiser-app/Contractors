@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSite, getAllSites } from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { createSite, getAllSites, logActivity } from "@/lib/db";
+import { getUser, getProfile } from "@/lib/auth";
 
 export async function GET() {
   const user = await getUser();
@@ -19,20 +19,11 @@ export async function POST(req: Request) {
   if (!name) return NextResponse.json({ error: "שם האתר חובה" }, { status: 400 });
 
   try {
-    const site = await createSite({
-      id: crypto.randomUUID(),
-      name,
-      location: location || null,
-      description: description || null,
-      clientName: clientName || null,
-      clientPhone: clientPhone || null,
-      contractValue: contractValue || null,
-      status: status || "ACTIVE",
-      startDate: startDate || null,
-      endDate: endDate || null,
-      workOrderUrl: workOrderUrl || null,
-      orderNumber: orderNumber || null,
-    });
+    const [site, profile] = await Promise.all([
+      createSite({ id: crypto.randomUUID(), name, location: location || null, description: description || null, clientName: clientName || null, clientPhone: clientPhone || null, contractValue: contractValue || null, status: status || "ACTIVE", startDate: startDate || null, endDate: endDate || null, workOrderUrl: workOrderUrl || null, orderNumber: orderNumber || null }),
+      getProfile(),
+    ]);
+    logActivity({ userId: user.id, userName: profile?.name || "משתמש", userEmail: profile?.email || "", action: "יצר אתר עבודה", resource: "site", resourceId: site.id, resourceName: name }).catch(() => {});
     return NextResponse.json(site);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

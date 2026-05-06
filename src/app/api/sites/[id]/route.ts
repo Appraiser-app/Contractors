@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateSite, deleteSite } from "@/lib/db";
+import { updateSite, deleteSite, getSiteById, logActivity } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -15,6 +15,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const site = await updateSite(id, { name, location: location || null, description: description || null, clientName: clientName || null, clientPhone: clientPhone || null, contractValue: contractValue || null, status, startDate: startDate || null, endDate: endDate || null, workOrderUrl: workOrderUrl !== undefined ? (workOrderUrl || null) : undefined });
+    logActivity({ userId: user.id, userName: profile.name, userEmail: profile.email, action: "עדכן אתר עבודה", resource: "site", resourceId: id, resourceName: name }).catch(() => {});
     return NextResponse.json(site);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -30,7 +31,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   const { id } = await params;
   try {
+    const site = await getSiteById(id);
     await deleteSite(id);
+    logActivity({ userId: user.id, userName: profile.name, userEmail: profile.email, action: "מחק אתר עבודה", resource: "site", resourceId: id, resourceName: site?.name || id }).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";
+import { getProfileById, logActivity } from "@/lib/db";
 
 const SESSION_DURATION = 60 * 60 * 24 * 14 * 1000; // 14 days
 
@@ -18,6 +19,10 @@ export async function POST(req: Request) {
       path: "/",
       sameSite: "lax",
     });
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    getProfileById(decoded.uid).then(profile => {
+      if (profile) logActivity({ userId: profile.id, userName: profile.name, userEmail: profile.email, action: "התחבר", resource: "auth" }).catch(() => {});
+    }).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

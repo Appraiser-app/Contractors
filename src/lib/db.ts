@@ -723,3 +723,39 @@ export async function acceptInvitation(id: string) {
 export async function deleteInvitation(id: string) {
   await adminDb.collection("invitations").doc(id).delete();
 }
+
+// --- User Activity ---
+export type UserActivity = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  action: string;
+  resource: string;
+  resourceId?: string | null;
+  resourceName?: string | null;
+  timestamp: string;
+};
+
+export async function logActivity(data: Omit<UserActivity, "id" | "timestamp">) {
+  const id = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  await adminDb.collection("userActivities").doc(id).set({ ...data, id, timestamp });
+}
+
+export async function getRecentActivities(limit = 100): Promise<UserActivity[]> {
+  const snapshot = await adminDb.collection("userActivities")
+    .orderBy("timestamp", "desc")
+    .limit(limit)
+    .get();
+  return snap<UserActivity>(snapshot);
+}
+
+export async function getUserActivities(userId: string, limit = 50): Promise<UserActivity[]> {
+  const snapshot = await adminDb.collection("userActivities")
+    .where("userId", "==", userId)
+    .orderBy("timestamp", "desc")
+    .limit(limit)
+    .get();
+  return snap<UserActivity>(snapshot);
+}
