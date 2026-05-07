@@ -100,7 +100,7 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
 
     // Create insurance if provided
     if (showInsurance && insurance.startDate && insurance.endDate) {
-      await fetch("/api/insurance", {
+      const insRes = await fetch("/api/insurance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -114,6 +114,11 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
           isPaid: insurance.isPaid,
         }),
       });
+      if (!insRes.ok) {
+        setError("הכלי נשמר אך שמירת הביטוח נכשלה");
+        setLoading(false);
+        return;
+      }
     }
 
     router.push(`/equipment/${equipmentId}`);

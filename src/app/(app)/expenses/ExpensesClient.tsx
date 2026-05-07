@@ -42,7 +42,7 @@ const PAYMENT_ICONS: Record<PaymentMethod, string> = {
 };
 
 const CATEGORIES = ["חומרים", "ציוד", "דלק", "שכר", "תחזוקה", "משרד", "ביטוח", "אחר"];
-const VAT_RATE = 0.17;
+const VAT_RATE = 0.18;
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n);

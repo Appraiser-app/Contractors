@@ -326,7 +326,7 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
                     {ins.company && <span>{ins.company}</span>}
                     {ins.policyNumber && <span dir="ltr">{ins.policyNumber}</span>}
                     <span>{formatDate(ins.startDate)} — {formatDate(ins.endDate)}</span>
-                    <span className="text-red-500">{formatCurrency(ins.cost)}</span>
+                    {ins.cost != null && <span className="text-red-500">{formatCurrency(ins.cost)}</span>}
                   </div>
                 </div>
                 {isAdmin && (
@@ -874,7 +874,7 @@ function AnalyticsTab({ equipment }: { equipment: Equipment }) {
   const totalFuel = fuelLogs.reduce((s, l) => s + l.totalCost, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const totalMaint = maintenance.reduce((s, m) => s + (m.cost || 0), 0);
-  const totalInsurance = insurances.reduce((s, i) => s + i.cost, 0);
+  const totalInsurance = insurances.reduce((s, i) => s + (i.cost || 0), 0);
   const grandTotal = totalFuel + totalExpenses + totalMaint + totalInsurance;
 
   // Cost breakdown by category

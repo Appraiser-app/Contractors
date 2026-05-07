@@ -520,7 +520,7 @@ export type MaintenanceRecord = {
 export type Insurance = {
   id: string; equipmentId: string; type: string;
   company: string | null; policyNumber: string | null;
-  startDate: string; endDate: string; cost: number; isPaid: boolean;
+  startDate: string; endDate: string; cost: number | null; isPaid: boolean;
   createdAt: string; updatedAt: string;
 };
 

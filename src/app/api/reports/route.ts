@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     );
     const allInsurance = equipment.flatMap(eq =>
       (eq.insurances || []).filter(i => inRange(i.startDate)).map(i => ({
-        id: i.id, date: i.startDate, amount: i.cost, category: "ביטוח", description: i.type,
+        id: i.id, date: i.startDate, amount: i.cost || 0, category: "ביטוח", description: i.type,
         equipmentName: eq.name, equipmentType: eq.type,
       }))
     );
