@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { uploadReceipt } from "@/lib/upload";
 import type { Equipment } from "@/lib/db";
 
 export default function EquipmentForm({ equipment }: { equipment?: Equipment }) {
   const router = useRouter();
+  const licenseFileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [licenseExpiry, setLicenseExpiry] = useState("");
+  const [showInsurance, setShowInsurance] = useState(false);
+  const [insurance, setInsurance] = useState({
+    type: "MANDATORY",
+    company: "",
+    policyNumber: "",
+    startDate: "",
+    endDate: "",
+    cost: "",
+    isPaid: false,
+  });
+
   const [form, setForm] = useState({
     name: equipment?.name || "",
     type: equipment?.type || "TRUCK",
@@ -21,6 +36,10 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
 
   function update(field: string, value: string) {
     setForm(p => ({ ...p, [field]: value }));
+  }
+
+  function updateInsurance(field: string, value: string | boolean) {
+    setInsurance(p => ({ ...p, [field]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -43,15 +62,58 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
       body: JSON.stringify(body),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      router.push(`/equipment/${data.id}`);
-      router.refresh();
-    } else {
+    if (!res.ok) {
       const err = await res.json();
       setError(err.error || "שגיאה בשמירה");
       setLoading(false);
+      return;
     }
+
+    const data = await res.json();
+    const equipmentId = data.id;
+
+    // Upload license file if provided
+    if (licenseFile) {
+      try {
+        const fileUrl = await uploadReceipt(licenseFile, "equipment-expenses");
+        await fetch("/api/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            equipmentId,
+            title: "רישיון רכב",
+            type: "LICENSE",
+            expiryDate: licenseExpiry || null,
+            notes: null,
+            fileUrl,
+          }),
+        });
+      } catch {
+        // Non-fatal — equipment was created, document upload failed
+        setError("הכלי נשמר אך העלאת קובץ הרישיון נכשלה");
+      }
+    }
+
+    // Create insurance if provided
+    if (showInsurance && insurance.startDate && insurance.endDate) {
+      await fetch("/api/insurance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipmentId,
+          type: insurance.type,
+          company: insurance.company || null,
+          policyNumber: insurance.policyNumber || null,
+          startDate: insurance.startDate,
+          endDate: insurance.endDate,
+          cost: insurance.cost ? parseFloat(insurance.cost) : null,
+          isPaid: insurance.isPaid,
+        }),
+      });
+    }
+
+    router.push(`/equipment/${equipmentId}`);
+    router.refresh();
   }
 
   return (
@@ -117,6 +179,105 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
               </select>
             </div>
           </div>
+        </div>
+
+        {/* License file section */}
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">רישיון</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">קובץ רישיון (אופציונלי)</label>
+              <input ref={licenseFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                onChange={e => setLicenseFile(e.target.files?.[0] || null)} />
+              {licenseFile ? (
+                <div className="flex items-center gap-2 border border-green-200 bg-green-50 rounded-xl px-3 py-2">
+                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs text-green-700 flex-1 truncate">{licenseFile.name}</span>
+                  <button type="button" onClick={() => setLicenseFile(null)} className="text-green-400 hover:text-red-500 text-xs">הסר</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => licenseFileRef.current?.click()}
+                  className="flex items-center gap-2 w-full border border-dashed border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  העלה רישיון (PDF / תמונה)
+                </button>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">תאריך תפוגת רישיון</label>
+              <input type="date" value={licenseExpiry} onChange={e => setLicenseExpiry(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                dir="ltr" />
+            </div>
+          </div>
+        </div>
+
+        {/* Insurance section */}
+        <div className="border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ביטוח</p>
+            <button type="button" onClick={() => setShowInsurance(v => !v)}
+              className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors ${showInsurance ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+              {showInsurance ? "הסתר" : "הוסף ביטוח"}
+            </button>
+          </div>
+
+          {showInsurance && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">סוג ביטוח</label>
+                  <select value={insurance.type} onChange={e => updateInsurance("type", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
+                    <option value="MANDATORY">חובה</option>
+                    <option value="COMPREHENSIVE">מקיף</option>
+                    <option value="THIRD_PARTY">צד שלישי</option>
+                    <option value="WORK_ACCIDENT">תאונות עבודה</option>
+                    <option value="OTHER">אחר</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">חברת ביטוח</label>
+                  <input type="text" value={insurance.company} onChange={e => updateInsurance("company", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                    placeholder="מגדל, הפניקס..." />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">מספר פוליסה</label>
+                  <input type="text" value={insurance.policyNumber} onChange={e => updateInsurance("policyNumber", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                    dir="ltr" placeholder="123456789" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">עלות (₪)</label>
+                  <input type="number" value={insurance.cost} onChange={e => updateInsurance("cost", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                    min="0" dir="ltr" placeholder="2500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">תאריך התחלה *</label>
+                  <input type="date" value={insurance.startDate} onChange={e => updateInsurance("startDate", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                    dir="ltr" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">תאריך סיום *</label>
+                  <input type="date" value={insurance.endDate} onChange={e => updateInsurance("endDate", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                    dir="ltr" />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={insurance.isPaid} onChange={e => updateInsurance("isPaid", e.target.checked)}
+                  className="w-4 h-4 rounded accent-green-600" />
+                <span className="text-sm text-gray-700">שולם</span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div>
