@@ -30,8 +30,11 @@ export default async function DashboardPage() {
     getAllExpenses(),
   ]);
 
+  const VAT = 0.18;
   const contractsIncome = sites.reduce((s, site) => s + (site.contractValue || 0), 0);
-  const totalIncome = contractsIncome + allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const totalIncomeNet = contractsIncome + allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const totalVat = totalIncomeNet * VAT;
+  const totalIncome = totalIncomeNet * (1 + VAT);
   const txExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const generalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const totalExpense = txExpense + generalExpenses;
@@ -87,7 +90,7 @@ export default async function DashboardPage() {
           <p className="text-2xl font-bold leading-none">{formatCurrency(totalBalance)}</p>
           <div className="mt-3 pt-3 border-t border-white/20 space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-white/60">הכנסות</span>
+              <span className="text-white/60">הכנסות כולל מע״מ</span>
               <span className="text-white/90 font-medium">{formatCurrency(totalIncome)}</span>
             </div>
             <div className="flex justify-between text-xs">
@@ -104,9 +107,10 @@ export default async function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 11l5-5m0 0l5 5m-5-5v12" />
               </svg>
             </div>
-            <p className="text-xs text-gray-400 font-medium">הכנסות</p>
+            <p className="text-xs text-gray-400 font-medium">הכנסות כולל מע״מ</p>
           </div>
           <p className="text-xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+          <p className="text-xs text-gray-400 mt-1">מע״מ 18%: {formatCurrency(totalVat)}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">

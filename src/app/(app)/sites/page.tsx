@@ -55,7 +55,7 @@ export default async function SitesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {sites.map(site => {
-            const income = (site.contractValue || 0) + (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+            const income = ((site.contractValue || 0) + (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0)) * 1.18;
             const expense = (site.transactions || []).filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
             const balance = income - expense;
             const txCount = (site.transactions || []).length;

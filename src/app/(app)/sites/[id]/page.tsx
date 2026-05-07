@@ -25,9 +25,11 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
   const site = await getSiteById(id);
   if (!site) notFound();
 
+  const VAT = 0.18;
   const transactions = site.transactions || [];
   const txIncome = transactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-  const income = (site.contractValue || 0) + txIncome;
+  const incomeNet = (site.contractValue || 0) + txIncome;
+  const income = incomeNet * (1 + VAT);
   const expense = transactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
   const isAdmin = profile?.role === "ADMIN";
@@ -66,7 +68,7 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-8">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5"><p className="text-gray-400 text-xs mb-1">הכנסות</p><p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(income)}</p></div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5"><p className="text-gray-400 text-xs mb-1">הכנסות כולל מע״מ</p><p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(income)}</p><p className="text-xs text-gray-400 mt-0.5">מע״מ: {formatCurrency(incomeNet * VAT)}</p></div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5"><p className="text-gray-400 text-xs mb-1">הוצאות</p><p className="text-xl sm:text-2xl font-bold text-red-600">{formatCurrency(expense)}</p></div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5"><p className="text-gray-400 text-xs mb-1">יתרה</p><p className={`text-xl sm:text-2xl font-bold ${balance >= 0 ? "text-green-700" : "text-red-700"}`}>{formatCurrency(balance)}</p></div>
       </div>
