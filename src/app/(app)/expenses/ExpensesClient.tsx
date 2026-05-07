@@ -148,7 +148,14 @@ function exportToPdf(rows: Expense[], label: string, entityFilter: string) {
 
 type ExpenseArchive = {
   id: string; name: string; notes: string | null;
-  totalAmount: number; expenseCount: number; createdAt: string;
+  totalAmount: number; expenseCount: number;
+  totalIncome: number; transactionCount: number;
+  createdAt: string;
+};
+
+type ArchivedTransaction = {
+  id: string; type: "INCOME" | "EXPENSE"; amount: number; description: string;
+  date: string; workSite?: { id: string; name: string } | null;
 };
 
 export default function ExpensesClient({
@@ -177,6 +184,8 @@ export default function ExpensesClient({
   // History view state
   const [viewingArchive, setViewingArchive] = useState<ExpenseArchive | null>(null);
   const [archiveExpenses, setArchiveExpenses] = useState<Expense[]>([]);
+  const [archiveTransactions, setArchiveTransactions] = useState<ArchivedTransaction[]>([]);
+  const [archiveTab, setArchiveTab] = useState<"expenses" | "income">("expenses");
   const [loadingArchive, setLoadingArchive] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -282,9 +291,20 @@ export default function ExpensesClient({
 
   async function viewArchive(archive: ExpenseArchive) {
     setViewingArchive(archive);
+    setArchiveTab("expenses");
     setLoadingArchive(true);
     const res = await fetch(`/api/expenses/archives/${archive.id}`);
-    if (res.ok) setArchiveExpenses(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      // Support both old format (array) and new format ({ expenses, transactions })
+      if (Array.isArray(data)) {
+        setArchiveExpenses(data);
+        setArchiveTransactions([]);
+      } else {
+        setArchiveExpenses(data.expenses || []);
+        setArchiveTransactions(data.transactions || []);
+      }
+    }
     setLoadingArchive(false);
   }
 
@@ -634,7 +654,7 @@ export default function ExpensesClient({
 
             <div className="overflow-y-auto flex-1 p-5">
               {viewingArchive ? (
-                /* Archived expenses list */
+                /* Archived period detail */
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <button onClick={() => setViewingArchive(null)} className="text-gray-400 hover:text-gray-600">
@@ -642,32 +662,58 @@ export default function ExpensesClient({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-800">{viewingArchive.name}</h3>
-                      <p className="text-xs text-gray-400">{viewingArchive.expenseCount} הוצאות · {formatCurrency(viewingArchive.totalAmount)}</p>
+                      <p className="text-xs text-gray-400">{new Date(viewingArchive.createdAt).toLocaleDateString("he-IL")}</p>
                     </div>
-                    <div className="mr-auto flex gap-2">
-                      <button onClick={() => exportToXlsx(archiveExpenses, viewingArchive.name)}
-                        className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors">
-                        <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Excel
-                      </button>
-                      <button onClick={() => exportToPdf(archiveExpenses, viewingArchive.name, "הכל")}
-                        className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors">
-                        <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        PDF
-                      </button>
-                    </div>
+                    <button onClick={() => exportToXlsx(archiveExpenses, viewingArchive.name)}
+                      className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Excel
+                    </button>
                   </div>
+
+                  {/* Period summary */}
+                  {!loadingArchive && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-center">
+                        <p className="text-xs text-gray-400">הכנסות</p>
+                        <p className="text-sm font-bold text-green-700">{formatCurrency(viewingArchive.totalIncome || archiveTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0))}</p>
+                      </div>
+                      <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-center">
+                        <p className="text-xs text-gray-400">הוצאות</p>
+                        <p className="text-sm font-bold text-red-600">{formatCurrency(viewingArchive.totalAmount)}</p>
+                      </div>
+                      <div className={`border rounded-xl px-3 py-2.5 text-center ${(viewingArchive.totalIncome || 0) - viewingArchive.totalAmount >= 0 ? "bg-blue-50 border-blue-100" : "bg-orange-50 border-orange-100"}`}>
+                        <p className="text-xs text-gray-400">רווח</p>
+                        <p className={`text-sm font-bold ${(viewingArchive.totalIncome || 0) - viewingArchive.totalAmount >= 0 ? "text-blue-700" : "text-orange-600"}`}>
+                          {formatCurrency((viewingArchive.totalIncome || 0) - viewingArchive.totalAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tabs */}
+                  <div className="flex border-b border-gray-100 mb-3">
+                    <button onClick={() => setArchiveTab("expenses")}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${archiveTab === "expenses" ? "text-orange-600 border-b-2 border-orange-500" : "text-gray-400"}`}>
+                      הוצאות ({viewingArchive.expenseCount})
+                    </button>
+                    <button onClick={() => setArchiveTab("income")}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${archiveTab === "income" ? "text-green-600 border-b-2 border-green-600" : "text-gray-400"}`}>
+                      הכנסות ({viewingArchive.transactionCount || archiveTransactions.length})
+                    </button>
+                  </div>
+
                   {loadingArchive ? (
                     <div className="text-center py-8 text-gray-400 text-sm">טוען...</div>
-                  ) : (
+                  ) : archiveTab === "expenses" ? (
                     <div className="space-y-2">
-                      {archiveExpenses.map(expense => (
+                      {archiveExpenses.length === 0 ? (
+                        <p className="text-center text-gray-400 text-sm py-6">אין הוצאות בתקופה זו</p>
+                      ) : archiveExpenses.map(expense => (
                         <div key={expense.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -679,36 +725,57 @@ export default function ExpensesClient({
                           <span className="text-sm font-bold text-red-600 flex-shrink-0">{formatCurrency(expense.amount)}</span>
                         </div>
                       ))}
-                      <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-3 mt-2">
-                        <span className="text-sm font-semibold text-gray-700">סה"כ</span>
-                        <span className="font-bold text-green-700">{formatCurrency(archiveExpenses.reduce((s, e) => s + e.amount, 0))}</span>
-                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {archiveTransactions.filter(t => t.type === "INCOME").length === 0 ? (
+                        <p className="text-center text-gray-400 text-sm py-6">אין הכנסות בתקופה זו</p>
+                      ) : archiveTransactions.filter(t => t.type === "INCOME").map(tx => (
+                        <div key={tx.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 truncate">{tx.description}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {formatDate(tx.date)}{tx.workSite ? ` · ${tx.workSite.name}` : ""}
+                            </p>
+                          </div>
+                          <span className="text-sm font-bold text-green-600 flex-shrink-0">{formatCurrency(tx.amount)}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               ) : (
                 /* Archives list */
                 <div className="space-y-3">
-                  {archives.map(archive => (
-                    <button key={archive.id} onClick={() => viewArchive(archive)}
-                      className="w-full text-right bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl px-4 py-3.5 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-800">{archive.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {archive.expenseCount} הוצאות · {new Date(archive.createdAt).toLocaleDateString("he-IL")}
-                          </p>
-                          {archive.notes && <p className="text-xs text-gray-400">{archive.notes}</p>}
+                  {archives.length === 0 && (
+                    <p className="text-center text-gray-400 text-sm py-8">אין תקופות מאורכבות עדיין</p>
+                  )}
+                  {archives.map(archive => {
+                    const profit = (archive.totalIncome || 0) - archive.totalAmount;
+                    return (
+                      <button key={archive.id} onClick={() => viewArchive(archive)}
+                        className="w-full text-right bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl px-4 py-3.5 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-800">{archive.name}</p>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              <span className="text-xs text-green-600">הכנסות {formatCurrency(archive.totalIncome || 0)}</span>
+                              <span className="text-xs text-red-500">הוצאות {formatCurrency(archive.totalAmount)}</span>
+                            </div>
+                            {archive.notes && <p className="text-xs text-gray-400 mt-0.5">{archive.notes}</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-bold ${profit >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                              {profit >= 0 ? "+" : ""}{formatCurrency(profit)}
+                            </span>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-gray-900">{formatCurrency(archive.totalAmount)}</span>
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

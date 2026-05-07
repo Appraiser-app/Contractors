@@ -131,6 +131,16 @@ export async function getAllTransactions() {
   ]);
   const siteMap: Record<string, { id: string; name: string }> = {};
   sitesSnap.docs.forEach(doc => { siteMap[doc.id] = { id: doc.id, name: doc.data().name }; });
+  return snap<Transaction>(txSnap).filter(t => !t.archiveId).map(t => ({ ...t, workSite: siteMap[t.workSiteId] }));
+}
+
+export async function getTransactionsByArchive(archiveId: string) {
+  const [txSnap, sitesSnap] = await Promise.all([
+    adminDb.collection("transactions").where("archiveId", "==", archiveId).orderBy("date", "desc").get(),
+    adminDb.collection("sites").get(),
+  ]);
+  const siteMap: Record<string, { id: string; name: string }> = {};
+  sitesSnap.docs.forEach(doc => { siteMap[doc.id] = { id: doc.id, name: doc.data().name }; });
   return snap<Transaction>(txSnap).map(t => ({ ...t, workSite: siteMap[t.workSiteId] }));
 }
 
@@ -480,6 +490,7 @@ export type Transaction = {
   createdById: string | null;
   approvedById: string | null;
   approvedAt: string | null;
+  archiveId: string | null;
   createdAt: string; updatedAt: string; workSite?: Partial<WorkSite>;
 };
 
@@ -594,6 +605,8 @@ export type ExpenseArchive = {
   notes: string | null;
   totalAmount: number;
   expenseCount: number;
+  totalIncome: number;
+  transactionCount: number;
   createdAt: string;
 };
 
@@ -712,26 +725,44 @@ export async function getExpensesByArchive(archiveId: string) {
 }
 
 export async function archiveCurrentExpenses(name: string, notes: string | null) {
-  // Get all current (non-archived) expenses
-  const snapshot = await adminDb.collection("expenses").orderBy("date", "desc").get();
-  const current = snap<Expense>(snapshot).filter(e => !e.archiveId);
+  // Get all current (non-archived) expenses and transactions
+  const [expSnap, txSnap] = await Promise.all([
+    adminDb.collection("expenses").orderBy("date", "desc").get(),
+    adminDb.collection("transactions").orderBy("date", "desc").get(),
+  ]);
+  const currentExpenses = snap<Expense>(expSnap).filter(e => !e.archiveId);
+  const currentTx = snap<Transaction>(txSnap).filter(t => !t.archiveId);
 
-  if (current.length === 0) throw new Error("אין הוצאות לארכיון");
+  if (currentExpenses.length === 0 && currentTx.length === 0) throw new Error("אין נתונים לארכיון");
 
   const archiveId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const totalAmount = current.reduce((s, e) => s + e.amount, 0);
+  const totalAmount = currentExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalIncome = currentTx.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
 
   // Create archive record
-  const archive: ExpenseArchive = { id: archiveId, name, notes, totalAmount, expenseCount: current.length, createdAt: now };
+  const archive: ExpenseArchive = {
+    id: archiveId, name, notes,
+    totalAmount, expenseCount: currentExpenses.length,
+    totalIncome, transactionCount: currentTx.length,
+    createdAt: now,
+  };
   await adminDb.collection("expenseArchives").doc(archiveId).set(archive);
 
-  // Update all current expenses in batches of 500
   const batchSize = 400;
-  for (let i = 0; i < current.length; i += batchSize) {
+  // Archive expenses
+  for (let i = 0; i < currentExpenses.length; i += batchSize) {
     const batch = adminDb.batch();
-    current.slice(i, i + batchSize).forEach(e => {
+    currentExpenses.slice(i, i + batchSize).forEach(e => {
       batch.update(adminDb.collection("expenses").doc(e.id), { archiveId });
+    });
+    await batch.commit();
+  }
+  // Archive transactions
+  for (let i = 0; i < currentTx.length; i += batchSize) {
+    const batch = adminDb.batch();
+    currentTx.slice(i, i + batchSize).forEach(t => {
+      batch.update(adminDb.collection("transactions").doc(t.id), { archiveId });
     });
     await batch.commit();
   }
