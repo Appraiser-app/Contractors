@@ -17,6 +17,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [vatIncluded, setVatIncluded] = useState(false);
   const [form, setForm] = useState({
     type: "INCOME",
     amount: "",
@@ -24,6 +25,11 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
     category: "",
     date: new Date().toISOString().split("T")[0],
   });
+
+  const VAT = 0.18;
+  const enteredAmount = parseFloat(form.amount) || 0;
+  const amountNet = (form.type === "INCOME" && vatIncluded) ? enteredAmount / (1 + VAT) : enteredAmount;
+  const amountGross = amountNet * (1 + VAT);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -51,7 +57,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
     const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, siteId, amount: parseFloat(form.amount), receiptUrl }),
+      body: JSON.stringify({ ...form, siteId, amount: amountNet, receiptUrl }),
     });
 
     if (res.ok) {
@@ -105,6 +111,24 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
               required min="0.01" step="0.01"
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
               placeholder="1000" dir="ltr" />
+            {form.type === "INCOME" && (
+              <div className="mt-1.5 flex rounded-lg border border-gray-200 overflow-hidden text-[11px] font-medium">
+                <button type="button" onClick={() => setVatIncluded(false)}
+                  className={`flex-1 py-1.5 transition-colors ${!vatIncluded ? "bg-green-600 text-white" : "bg-white text-gray-500"}`}>
+                  ללא מע״מ
+                </button>
+                <button type="button" onClick={() => setVatIncluded(true)}
+                  className={`flex-1 py-1.5 transition-colors border-r border-gray-200 ${vatIncluded ? "bg-green-600 text-white" : "bg-white text-gray-500"}`}>
+                  כולל מע״מ
+                </button>
+              </div>
+            )}
+            {form.type === "INCOME" && enteredAmount > 0 && (
+              <div className="mt-1 text-[11px] text-gray-400 space-y-0.5">
+                <div>נטו: <span className="text-gray-600 font-medium">₪{Math.round(amountNet).toLocaleString()}</span></div>
+                <div>ברוטו כולל מע״מ: <span className="text-green-600 font-medium">₪{Math.round(amountGross).toLocaleString()}</span></div>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">תאריך</label>

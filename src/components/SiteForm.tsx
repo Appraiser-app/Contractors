@@ -26,6 +26,7 @@ export default function SiteForm({ site }: { site?: Site }) {
   const [workOrderFile, setWorkOrderFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(false);
 
+  const [vatIncluded, setVatIncluded] = useState(false);
   const [form, setForm] = useState({
     name: site?.name || "",
     location: site?.location || "",
@@ -37,6 +38,11 @@ export default function SiteForm({ site }: { site?: Site }) {
     startDate: site?.startDate ? new Date(site.startDate).toISOString().split("T")[0] : "",
     endDate: site?.endDate ? new Date(site.endDate).toISOString().split("T")[0] : "",
   });
+
+  const VAT = 0.18;
+  const enteredValue = parseFloat(form.contractValue) || 0;
+  const contractNet = vatIncluded ? enteredValue / (1 + VAT) : enteredValue;
+  const contractGross = contractNet * (1 + VAT);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -66,7 +72,7 @@ export default function SiteForm({ site }: { site?: Site }) {
 
     const body = {
       ...form,
-      contractValue: form.contractValue ? parseFloat(form.contractValue) : null,
+      contractValue: form.contractValue ? contractNet : null,
       startDate: form.startDate || null,
       endDate: form.endDate || null,
       workOrderUrl,
@@ -135,17 +141,36 @@ export default function SiteForm({ site }: { site?: Site }) {
               dir="ltr"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">ערך חוזה (₪)</label>
-            <input
-              type="number"
-              value={form.contractValue}
-              onChange={(e) => update("contractValue", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
-              placeholder="500000"
-              min="0"
-              dir="ltr"
-            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={form.contractValue}
+                onChange={(e) => update("contractValue", e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
+                placeholder="500000"
+                min="0"
+                dir="ltr"
+              />
+              <div className="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium flex-shrink-0">
+                <button type="button" onClick={() => setVatIncluded(false)}
+                  className={`px-3 py-2 transition-colors ${!vatIncluded ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+                  ללא מע״מ
+                </button>
+                <button type="button" onClick={() => setVatIncluded(true)}
+                  className={`px-3 py-2 transition-colors border-r border-gray-200 ${vatIncluded ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+                  כולל מע״מ
+                </button>
+              </div>
+            </div>
+            {enteredValue > 0 && (
+              <div className="mt-2 flex gap-4 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                <span>נטו: <span className="font-semibold text-gray-700">{new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(contractNet)}</span></span>
+                <span>מע״מ 18%: <span className="font-semibold text-green-600">+{new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(contractGross - contractNet)}</span></span>
+                <span>ברוטו: <span className="font-semibold text-green-700">{new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(contractGross)}</span></span>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">תאריך התחלה</label>
