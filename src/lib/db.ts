@@ -81,7 +81,7 @@ export async function getAllSites() {
     adminDb.collection("sites").orderBy("createdAt", "desc").get(),
     adminDb.collection("transactions").get(),
   ]);
-  const transactions = snap<Transaction>(txSnap);
+  const transactions = snap<Transaction>(txSnap).filter(t => !t.archiveId);
   return sitesSnap.docs.map(doc => {
     const site = docToObj<WorkSite>(doc);
     site.transactions = transactions.filter(t => t.workSiteId === site.id);
@@ -96,7 +96,7 @@ export async function getSiteById(id: string) {
   ]);
   if (!doc.exists) return null;
   const site = docToObj<WorkSite>(doc);
-  site.transactions = snap<Transaction>(txSnap);
+  site.transactions = snap<Transaction>(txSnap).filter(t => !t.archiveId);
   return site;
 }
 
@@ -147,7 +147,7 @@ export async function getTransactionsByArchive(archiveId: string) {
 export async function createTransaction(txData: Partial<Transaction> & { workSiteId: string }) {
   const id = txData.id || crypto.randomUUID();
   const now = new Date().toISOString();
-  const data = { ...txData, id, approvalStatus: txData.approvalStatus || "PENDING", createdAt: now, updatedAt: now };
+  const data = { ...txData, id, archiveId: null, approvalStatus: txData.approvalStatus || "PENDING", createdAt: now, updatedAt: now };
   await adminDb.collection("transactions").doc(id).set(data);
   return data as Transaction;
 }
