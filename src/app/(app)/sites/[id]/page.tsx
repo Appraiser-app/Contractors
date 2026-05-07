@@ -26,7 +26,8 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
   if (!site) notFound();
 
   const transactions = site.transactions || [];
-  const income = transactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const txIncome = transactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const income = (site.contractValue || 0) + txIncome;
   const expense = transactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
   const isAdmin = profile?.role === "ADMIN";

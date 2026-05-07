@@ -30,7 +30,8 @@ export default async function DashboardPage() {
     getAllExpenses(),
   ]);
 
-  const totalIncome = allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const contractsIncome = sites.reduce((s, site) => s + (site.contractValue || 0), 0);
+  const totalIncome = contractsIncome + allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
   const txExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const generalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const totalExpense = txExpense + generalExpenses;
@@ -151,7 +152,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-1">
                 {sites.filter(s => s.status === "ACTIVE").slice(0, 5).map(site => {
-                  const income = (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+                  const income = (site.contractValue || 0) + (site.transactions || []).filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
                   const expense = (site.transactions || []).filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
                   const balance = income - expense;
                   return (
