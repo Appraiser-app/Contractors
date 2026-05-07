@@ -82,12 +82,18 @@ export default async function DashboardPage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-5 text-white shadow-lg shadow-green-200">
-          <p className="text-green-100 text-xs font-medium mb-3">יתרה כוללת</p>
+        <div className={`col-span-2 lg:col-span-1 rounded-2xl p-5 text-white shadow-lg ${totalBalance >= 0 ? "bg-gradient-to-br from-green-600 to-green-700 shadow-green-200" : "bg-gradient-to-br from-red-500 to-red-600 shadow-red-200"}`}>
+          <p className="text-white/70 text-xs font-medium mb-2">רווח תפעולי</p>
           <p className="text-2xl font-bold leading-none">{formatCurrency(totalBalance)}</p>
-          <div className="mt-3 flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${totalBalance >= 0 ? "bg-green-300" : "bg-red-300"}`} />
-            <p className="text-green-100 text-xs">{totalBalance >= 0 ? "רווח מצטבר" : "הפסד מצטבר"}</p>
+          <div className="mt-3 pt-3 border-t border-white/20 space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-white/60">הכנסות</span>
+              <span className="text-white/90 font-medium">{formatCurrency(totalIncome)}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-white/60">הוצאות</span>
+              <span className="text-white/90 font-medium">−{formatCurrency(totalExpense)}</span>
+            </div>
           </div>
         </div>
 
