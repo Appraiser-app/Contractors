@@ -489,6 +489,8 @@ export type Equipment = {
   status: "ACTIVE" | "IN_REPAIR" | "INACTIVE";
   registeredOwner: string | null;
   registeredAt: "VEHICLE_LICENSING" | "LABOR_MINISTRY" | null;
+  currentMileage: number | null;
+  nextServiceMileage: number | null;
   createdAt: string; updatedAt: string;
   maintenance?: MaintenanceRecord[];
   insurances?: Insurance[];

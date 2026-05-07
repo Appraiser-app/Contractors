@@ -58,6 +58,22 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
               </span>
             </div>
           )}
+          {eq.currentMileage != null && (
+            <div className="flex items-center gap-1.5 mt-1 sm:mr-8">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs text-gray-400">
+                {eq.currentMileage.toLocaleString("he-IL")} ק״מ
+                {eq.nextServiceMileage != null && (
+                  <span className={eq.nextServiceMileage - eq.currentMileage <= 1000 ? "text-orange-500 font-medium" : ""}>
+                    {" · טיפול ב-"}{eq.nextServiceMileage.toLocaleString("he-IL")} ק״מ
+                    {" (עוד "}{Math.max(0, eq.nextServiceMileage - eq.currentMileage).toLocaleString("he-IL")}{" ק״מ)"}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
         {isAdmin && (
           <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm flex-shrink-0 w-fit">

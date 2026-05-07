@@ -32,6 +32,8 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
     status: equipment?.status || "ACTIVE",
     registeredOwner: equipment?.registeredOwner || "",
     registeredAt: equipment?.registeredAt || "",
+    currentMileage: equipment?.currentMileage?.toString() || "",
+    nextServiceMileage: equipment?.nextServiceMileage?.toString() || "",
   });
 
   function update(field: string, value: string) {
@@ -54,6 +56,8 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
       description: form.description || null,
       registeredOwner: form.registeredOwner || null,
       registeredAt: form.registeredAt || null,
+      currentMileage: form.currentMileage ? parseInt(form.currentMileage) : null,
+      nextServiceMileage: form.nextServiceMileage ? parseInt(form.nextServiceMileage) : null,
     };
 
     const res = await fetch(equipment ? `/api/equipment/${equipment.id}` : "/api/equipment", {
@@ -177,6 +181,36 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
                 <option value="VEHICLE_LICENSING">משרד הרישוי</option>
                 <option value="LABOR_MINISTRY">משרד העבודה</option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Mileage section */}
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">קילומטרז׳</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">מד קילומטרים נוכחי</label>
+              <div className="relative">
+                <input type="number" value={form.currentMileage} onChange={e => update("currentMileage", e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 pl-12"
+                  placeholder="125000" min="0" dir="ltr" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">ק״מ</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">טיפול הבא בקילומטר</label>
+              <div className="relative">
+                <input type="number" value={form.nextServiceMileage} onChange={e => update("nextServiceMileage", e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 pl-12"
+                  placeholder="130000" min="0" dir="ltr" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">ק״מ</span>
+              </div>
+              {form.currentMileage && form.nextServiceMileage && parseInt(form.nextServiceMileage) > parseInt(form.currentMileage) && (
+                <p className="text-xs text-gray-400 mt-1">
+                  עוד {(parseInt(form.nextServiceMileage) - parseInt(form.currentMileage)).toLocaleString("he-IL")} ק״מ לטיפול
+                </p>
+              )}
             </div>
           </div>
         </div>
