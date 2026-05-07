@@ -615,6 +615,7 @@ export type Subscription = {
   provider: string | null;
   amount: number;
   billingCycle: BillingCycle;
+  startDate: string | null;
   nextRenewal: string;
   notes: string | null;
   isActive: boolean;

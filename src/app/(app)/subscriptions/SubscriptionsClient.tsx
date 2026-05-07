@@ -8,7 +8,8 @@ type AppointmentStatus = "PENDING" | "DONE" | "CANCELLED";
 
 type Subscription = {
   id: string; name: string; type: SubscriptionType; provider: string | null;
-  amount: number; billingCycle: BillingCycle; nextRenewal: string;
+  amount: number; billingCycle: BillingCycle;
+  startDate: string | null; nextRenewal: string;
   notes: string | null; isActive: boolean;
   equipmentId: string | null; equipmentName: string | null;
   createdAt: string;
@@ -75,7 +76,7 @@ function SubscriptionsTab({
   const [form, setForm] = useState({
     name: "", type: "ביטוח" as SubscriptionType, provider: "",
     amount: "", billingCycle: "שנתי" as BillingCycle,
-    nextRenewal: "", notes: "", equipmentId: "",
+    startDate: "", nextRenewal: "", notes: "", equipmentId: "",
   });
 
   const expiringSoon = subs.filter(s => s.isActive && daysUntil(s.nextRenewal) <= 30);
@@ -96,13 +97,14 @@ function SubscriptionsTab({
       body: JSON.stringify({
         name: form.name, type: form.type, provider: form.provider || null,
         amount: form.amount, billingCycle: form.billingCycle,
-        nextRenewal: form.nextRenewal, notes: form.notes || null,
+        startDate: form.startDate || null, nextRenewal: form.nextRenewal,
+        notes: form.notes || null,
         equipmentId: form.equipmentId || null, equipmentName: eq?.name || null,
       }),
     });
     if (res.ok) {
       onAdd(await res.json());
-      setForm({ name: "", type: "ביטוח", provider: "", amount: "", billingCycle: "שנתי", nextRenewal: "", notes: "", equipmentId: "" });
+      setForm({ name: "", type: "ביטוח", provider: "", amount: "", billingCycle: "שנתי", startDate: "", nextRenewal: "", notes: "", equipmentId: "" });
       setShowForm(false);
     }
     setLoading(false);
@@ -212,7 +214,12 @@ function SubscriptionsTab({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">תאריך חידוש הבא *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">תאריך התחלה</label>
+              <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">תאריך סיום / חידוש הבא *</label>
               <input type="date" value={form.nextRenewal} onChange={e => setForm(p => ({ ...p, nextRenewal: e.target.value }))} required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" dir="ltr" />
             </div>
@@ -264,7 +271,14 @@ function SubscriptionsTab({
                     <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                       {sub.provider && <span>{sub.provider}</span>}
                       <span className="font-medium text-gray-700">{formatCurrency(sub.amount)} / {sub.billingCycle}</span>
-                      <span>·</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {sub.startDate && (
+                        <span className="text-xs text-gray-400">
+                          {formatDate(sub.startDate)}
+                          <span className="mx-1 text-gray-300">→</span>
+                        </span>
+                      )}
                       <RenewalBadge dateStr={sub.nextRenewal} />
                     </div>
                     {sub.notes && <p className="text-xs text-gray-400 mt-1">{sub.notes}</p>}
