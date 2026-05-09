@@ -49,6 +49,8 @@ const approvalColor = {
 const INCOME_CATEGORIES = ["תשלום לקוח", "מקדמה", "סיום שלב", "אחר"];
 const EXPENSE_CATEGORIES = ["ציוד", "דלק", "שכר עובדים", "חומרים", "שכירות", "ביטוח", "טיפול", "אחר"];
 
+type Archive = { id: string; name: string; createdAt: string; totalIncome: number; totalExpenses: number };
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -56,6 +58,10 @@ export default function TransactionsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"dashboard" | "list">("dashboard");
+
+  // Archive fallback — when no active transactions, show most recent archive
+  const [viewingArchive, setViewingArchive] = useState<Archive | null>(null);
+  const [archiveTx, setArchiveTx] = useState<Transaction[]>([]);
 
   // Add transaction modal
   const [showAdd, setShowAdd] = useState(false);
@@ -78,9 +84,32 @@ export default function TransactionsPage() {
       fetch("/api/auth/me"),
       fetch("/api/sites"),
     ]);
-    if (txRes.ok) setTransactions(await txRes.json());
+    const txData: Transaction[] = txRes.ok ? await txRes.json() : [];
     if (meRes.ok) { const me = await meRes.json(); setCurrentUserId(me.id); }
     if (sitesRes.ok) setSites(await sitesRes.json());
+    setTransactions(txData);
+
+    // If no active transactions, load the most recent archive automatically
+    if (txData.length === 0) {
+      const archRes = await fetch("/api/expenses/archives");
+      if (archRes.ok) {
+        const archives: Archive[] = await archRes.json();
+        if (archives.length > 0) {
+          const latest = archives.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+          setViewingArchive(latest);
+          const detailRes = await fetch(`/api/expenses/archives/${latest.id}`);
+          if (detailRes.ok) {
+            const detail = await detailRes.json();
+            const txList: Transaction[] = Array.isArray(detail) ? detail : (detail.transactions || []);
+            setArchiveTx(txList);
+          }
+        }
+      }
+    } else {
+      setViewingArchive(null);
+      setArchiveTx([]);
+    }
+
     setLoading(false);
   }, []);
 
@@ -124,9 +153,11 @@ export default function TransactionsPage() {
   }
 
   // ── Computed summaries ───────────────────────────────────────────────────
+  // Use archive data when no active transactions
+  const displayTx = transactions.length > 0 ? transactions : archiveTx;
   // Include all non-rejected transactions in totals (approved + pending = real financial activity)
-  const active = transactions.filter(t => t.approvalStatus !== "REJECTED");
-  const approvedOnly = transactions.filter(t => t.approvalStatus === "APPROVED");
+  const active = displayTx.filter(t => t.approvalStatus !== "REJECTED");
+  const approvedOnly = displayTx.filter(t => t.approvalStatus === "APPROVED");
   const pendingCount = transactions.filter(t => t.approvalStatus === "PENDING").length;
 
   const totalIncome = active.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
@@ -176,7 +207,11 @@ export default function TransactionsPage() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">הכנסות והוצאות</h1>
-          <p className="text-gray-400 text-sm mt-1">{transactions.length} תנועות בתקופה הנוכחית</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {viewingArchive
+              ? `ארכיון: ${viewingArchive.name} · ${displayTx.length} תנועות`
+              : `${transactions.length} תנועות בתקופה הנוכחית`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium">
@@ -198,6 +233,22 @@ export default function TransactionsPage() {
           </button>
         </div>
       </div>
+
+      {/* Archive banner */}
+      {viewingArchive && (
+        <div className="mb-4 bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2L19 8M10 12v4M14 12v4" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-blue-800">מציג ארכיון: {viewingArchive.name}</p>
+            <p className="text-xs text-blue-500 mt-0.5">אין תנועות פעילות בתקופה הנוכחית — מוצגות תנועות מהארכיון האחרון</p>
+          </div>
+          <Link href="/expenses" className="text-xs text-blue-600 hover:underline flex-shrink-0">כל הארכיונים →</Link>
+        </div>
+      )}
 
       {/* Pending approvals banner */}
       {pendingCount > 0 && (
@@ -279,7 +330,7 @@ export default function TransactionsPage() {
       {/* ── DASHBOARD TAB ── */}
       {activeTab === "dashboard" && (
         <div className="space-y-5">
-          {transactions.length === 0 ? (
+          {displayTx.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-16 text-center">
               <p className="text-5xl mb-4">💸</p>
               <p className="text-gray-500 font-medium">אין תנועות בתקופה הנוכחית</p>
