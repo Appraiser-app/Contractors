@@ -11,10 +11,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params;
   const body = await req.json();
-  const { name, location, description, clientName, clientPhone, contractValue, status, startDate, endDate, workOrderUrl } = body;
+  const { name, location, description, clientName, clientPhone, contractValue, status, startDate, endDate, workOrderUrl, lat, lng } = body;
 
   try {
-    const site = await updateSite(id, { name, location: location || null, description: description || null, clientName: clientName || null, clientPhone: clientPhone || null, contractValue: contractValue || null, status, startDate: startDate || null, endDate: endDate || null, workOrderUrl: workOrderUrl !== undefined ? (workOrderUrl || null) : undefined });
+    const site = await updateSite(id, { name, location: location || null, description: description || null, clientName: clientName || null, clientPhone: clientPhone || null, contractValue: contractValue || null, status, startDate: startDate || null, endDate: endDate || null, workOrderUrl: workOrderUrl !== undefined ? (workOrderUrl || null) : undefined, lat: lat ?? null, lng: lng ?? null });
     logActivity({ userId: user.id, userName: profile.name, userEmail: profile.email, action: "עדכן אתר עבודה", resource: "site", resourceId: id, resourceName: name }).catch(() => {});
     return NextResponse.json(site);
   } catch (e) {

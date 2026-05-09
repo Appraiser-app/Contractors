@@ -106,6 +106,31 @@ export async function GET() {
       results.insurance = { updated, skipped };
     }
 
+    // ── 6. Sites: backfill lat/lng ────────────────────────────────────────
+    {
+      const snap = await adminDb.collection("sites").get();
+      let updated = 0, skipped = 0;
+      const batchSize = 400;
+      const docs = snap.docs.filter(d => {
+        const data = d.data();
+        return data.lat === undefined || data.lng === undefined;
+      });
+      for (let i = 0; i < docs.length; i += batchSize) {
+        const batch = adminDb.batch();
+        docs.slice(i, i + batchSize).forEach(d => {
+          const data = d.data();
+          const updates: Record<string, null> = {};
+          if (data.lat === undefined) updates.lat = null;
+          if (data.lng === undefined) updates.lng = null;
+          batch.update(d.ref, updates);
+          updated++;
+        });
+        await batch.commit();
+      }
+      skipped = snap.size - updated;
+      results.sites = { updated, skipped };
+    }
+
     return NextResponse.json({ ok: true, results });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

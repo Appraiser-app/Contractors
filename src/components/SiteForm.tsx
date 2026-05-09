@@ -17,6 +17,8 @@ type Site = {
   startDate: Date | null;
   endDate: Date | null;
   workOrderUrl?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export default function SiteForm({ site }: { site?: Site }) {
@@ -27,6 +29,10 @@ export default function SiteForm({ site }: { site?: Site }) {
   const [uploadProgress, setUploadProgress] = useState(false);
 
   const [vatIncluded, setVatIncluded] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    site?.lat != null && site?.lng != null ? { lat: site.lat, lng: site.lng } : null
+  );
   const [form, setForm] = useState({
     name: site?.name || "",
     location: site?.location || "",
@@ -38,6 +44,28 @@ export default function SiteForm({ site }: { site?: Site }) {
     startDate: site?.startDate ? new Date(site.startDate).toISOString().split("T")[0] : "",
     endDate: site?.endDate ? new Date(site.endDate).toISOString().split("T")[0] : "",
   });
+
+  async function geocodeLocation() {
+    if (!form.location.trim()) return;
+    setGeocoding(true);
+    try {
+      const query = encodeURIComponent(form.location + ", ישראל");
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=il`,
+        { headers: { "Accept-Language": "he" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+      } else {
+        setError("לא נמצא מיקום — נסה כתובת מדויקת יותר");
+      }
+    } catch {
+      setError("שגיאה בחיפוש מיקום");
+    } finally {
+      setGeocoding(false);
+    }
+  }
 
   const VAT = 0.18;
   const enteredValue = parseFloat(form.contractValue) || 0;
@@ -76,6 +104,8 @@ export default function SiteForm({ site }: { site?: Site }) {
       startDate: form.startDate || null,
       endDate: form.endDate || null,
       workOrderUrl,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
     };
 
     const res = await fetch(site ? `/api/sites/${site.id}` : "/api/sites", {
@@ -112,13 +142,40 @@ export default function SiteForm({ site }: { site?: Site }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">מיקום</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => update("location", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
-              placeholder="תל אביב"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={form.location}
+                onChange={(e) => { update("location", e.target.value); setCoords(null); }}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
+                placeholder="תל אביב, רחוב הרצל 1"
+              />
+              <button
+                type="button"
+                onClick={geocodeLocation}
+                disabled={geocoding || !form.location.trim()}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:border-green-400 hover:text-green-600 disabled:opacity-40 transition-colors text-xs flex-shrink-0"
+                title="איתור על המפה"
+              >
+                {geocoding ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {coords && (
+              <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                מיקום נמצא: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">שם לקוח</label>

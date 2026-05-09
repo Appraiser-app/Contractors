@@ -478,6 +478,8 @@ export type WorkSite = {
   orderNumber: string | null;
   completedAt: string | null;
   collectedAt: string | null;
+  lat: number | null;
+  lng: number | null;
   createdAt: string; updatedAt: string;
   transactions?: Transaction[];
 };
