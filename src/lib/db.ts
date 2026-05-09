@@ -504,7 +504,9 @@ export type Equipment = {
   registeredAt: "VEHICLE_LICENSING" | "LABOR_MINISTRY" | null;
   currentMileage: number | null;
   nextServiceMileage: number | null;
+  testLastDate: string | null;
   testDate: string | null;
+  testCost: number | null;
   createdAt: string; updatedAt: string;
   maintenance?: MaintenanceRecord[];
   insurances?: Insurance[];

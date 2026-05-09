@@ -34,7 +34,9 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
     registeredAt: equipment?.registeredAt || "",
     currentMileage: equipment?.currentMileage?.toString() || "",
     nextServiceMileage: equipment?.nextServiceMileage?.toString() || "",
+    testLastDate: equipment?.testLastDate || "",
     testDate: equipment?.testDate || "",
+    testCost: equipment?.testCost?.toString() || "",
   });
 
   function update(field: string, value: string) {
@@ -59,7 +61,9 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
       registeredAt: form.registeredAt || null,
       currentMileage: form.currentMileage ? parseInt(form.currentMileage) : null,
       nextServiceMileage: form.nextServiceMileage ? parseInt(form.nextServiceMileage) : null,
+      testLastDate: form.testLastDate || null,
       testDate: form.testDate || null,
+      testCost: form.testCost ? parseFloat(form.testCost) : null,
     };
 
     const res = await fetch(equipment ? `/api/equipment/${equipment.id}` : "/api/equipment", {
@@ -225,9 +229,15 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
         {/* Test date section */}
         <div className="border-t border-gray-100 pt-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">טסט</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">תאריך טסט הבא</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">טסט אחרון</label>
+              <input type="date" value={form.testLastDate} onChange={e => update("testLastDate", e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">טסט הבא</label>
               <input type="date" value={form.testDate} onChange={e => update("testDate", e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
                 dir="ltr" />
@@ -239,6 +249,12 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
                   <p className="text-xs text-red-500 mt-1">⚠ הטסט פג תוקף לפני {Math.abs(days)} ימים</p>
                 ) : null;
               })()}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">עלות טסט (₪)</label>
+              <input type="number" value={form.testCost} onChange={e => update("testCost", e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                min="0" dir="ltr" placeholder="350" />
             </div>
           </div>
         </div>

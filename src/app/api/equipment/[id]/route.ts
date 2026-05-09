@@ -7,9 +7,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await requireAdmin();
     const { id } = await params;
     const body = await req.json();
-    const { name, type, licensePlate, year, description, status, registeredOwner, registeredAt, currentMileage, nextServiceMileage, testDate } = body;
+    const { name, type, licensePlate, year, description, status, registeredOwner, registeredAt, currentMileage, nextServiceMileage, testLastDate, testDate, testCost } = body;
     if (!name) return NextResponse.json({ error: "שם הכלי חובה" }, { status: 400 });
-    const eq = await updateEquipment(id, { name, type, licensePlate, year, description, status, registeredOwner: registeredOwner || null, registeredAt: registeredAt || null, currentMileage: currentMileage || null, nextServiceMileage: nextServiceMileage || null, testDate: testDate || null });
+    const eq = await updateEquipment(id, { name, type, licensePlate, year, description, status, registeredOwner: registeredOwner || null, registeredAt: registeredAt || null, currentMileage: currentMileage || null, nextServiceMileage: nextServiceMileage || null, testLastDate: testLastDate || null, testDate: testDate || null, testCost: testCost || null });
     return NextResponse.json(eq);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

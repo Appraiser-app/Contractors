@@ -52,7 +52,7 @@ export async function GET() {
       const batchSize = 400;
       const docs = snap.docs.filter(d => {
         const data = d.data();
-        return data.currentMileage === undefined || data.nextServiceMileage === undefined || data.testDate === undefined;
+        return data.currentMileage === undefined || data.nextServiceMileage === undefined || data.testLastDate === undefined || data.testDate === undefined || data.testCost === undefined;
       });
       for (let i = 0; i < docs.length; i += batchSize) {
         const batch = adminDb.batch();
@@ -61,7 +61,9 @@ export async function GET() {
           const updates: Record<string, null> = {};
           if (data.currentMileage === undefined) updates.currentMileage = null;
           if (data.nextServiceMileage === undefined) updates.nextServiceMileage = null;
+          if (data.testLastDate === undefined) updates.testLastDate = null;
           if (data.testDate === undefined) updates.testDate = null;
+          if (data.testCost === undefined) updates.testCost = null;
           batch.update(d.ref, updates);
           updated++;
         });
