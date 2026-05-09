@@ -124,15 +124,20 @@ export default function TransactionsPage() {
   }
 
   // ── Computed summaries ───────────────────────────────────────────────────
-  const approved = transactions.filter(t => t.approvalStatus === "APPROVED");
-  const totalIncome = approved.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-  const totalExpense = approved.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
-  const balance = totalIncome - totalExpense;
+  // Include all non-rejected transactions in totals (approved + pending = real financial activity)
+  const active = transactions.filter(t => t.approvalStatus !== "REJECTED");
+  const approvedOnly = transactions.filter(t => t.approvalStatus === "APPROVED");
   const pendingCount = transactions.filter(t => t.approvalStatus === "PENDING").length;
 
-  // Monthly breakdown (last 6 months)
+  const totalIncome = active.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const totalExpense = active.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+  const approvedIncome = approvedOnly.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const approvedExpense = approvedOnly.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+  const balance = totalIncome - totalExpense;
+
+  // Monthly breakdown (last 6 months) — all non-rejected
   const monthlyMap: Record<string, { income: number; expense: number }> = {};
-  approved.forEach(t => {
+  active.forEach(t => {
     const ym = t.date.slice(0, 7);
     if (!monthlyMap[ym]) monthlyMap[ym] = { income: 0, expense: 0 };
     if (t.type === "INCOME") monthlyMap[ym].income += t.amount;
@@ -141,9 +146,9 @@ export default function TransactionsPage() {
   const months = Object.keys(monthlyMap).sort().reverse().slice(0, 6);
   const maxMonthVal = Math.max(...months.map(m => Math.max(monthlyMap[m].income, monthlyMap[m].expense)), 1);
 
-  // By site breakdown
+  // By site breakdown — all non-rejected
   const siteMap: Record<string, { name: string; income: number; expense: number }> = {};
-  approved.forEach(t => {
+  active.forEach(t => {
     const siteName = t.workSite?.name || t.workSiteId;
     if (!siteMap[t.workSiteId]) siteMap[t.workSiteId] = { name: siteName, income: 0, expense: 0 };
     if (t.type === "INCOME") siteMap[t.workSiteId].income += t.amount;
@@ -156,7 +161,7 @@ export default function TransactionsPage() {
 
   // By category (expenses)
   const catMap: Record<string, number> = {};
-  approved.filter(t => t.type === "EXPENSE").forEach(t => {
+  active.filter(t => t.type === "EXPENSE").forEach(t => {
     const cat = t.category || "אחר";
     catMap[cat] = (catMap[cat] || 0) + t.amount;
   });
@@ -221,7 +226,10 @@ export default function TransactionsPage() {
             <p className="text-xs text-gray-400 font-medium">סה"כ הכנסות</p>
           </div>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
-          <p className="text-xs text-gray-400 mt-1">{approved.filter(t => t.type === "INCOME").length} תנועות מאושרות</p>
+          <div className="flex gap-2 mt-1 text-xs text-gray-400">
+            <span className="text-green-600">{formatCurrency(approvedIncome)} מאושר</span>
+            {totalIncome - approvedIncome > 0 && <span className="text-yellow-600">· {formatCurrency(totalIncome - approvedIncome)} ממתין</span>}
+          </div>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center gap-2 mb-2">
@@ -233,7 +241,10 @@ export default function TransactionsPage() {
             <p className="text-xs text-gray-400 font-medium">סה"כ הוצאות</p>
           </div>
           <p className="text-2xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
-          <p className="text-xs text-gray-400 mt-1">{approved.filter(t => t.type === "EXPENSE").length} תנועות מאושרות</p>
+          <div className="flex gap-2 mt-1 text-xs text-gray-400">
+            <span className="text-red-500">{formatCurrency(approvedExpense)} מאושר</span>
+            {totalExpense - approvedExpense > 0 && <span className="text-yellow-600">· {formatCurrency(totalExpense - approvedExpense)} ממתין</span>}
+          </div>
         </div>
         <div className={`rounded-2xl border p-5 ${balance >= 0 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"}`}>
           <div className="flex items-center gap-2 mb-2">
