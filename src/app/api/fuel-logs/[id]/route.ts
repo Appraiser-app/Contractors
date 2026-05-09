@@ -6,6 +6,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  await deleteFuelLog(id);
-  return NextResponse.json({ ok: true });
+  try {
+    await deleteFuelLog(id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

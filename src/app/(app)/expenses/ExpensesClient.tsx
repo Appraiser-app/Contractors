@@ -856,7 +856,7 @@ export default function ExpensesClient({
                       <span dir="ltr">{formatCurrency(numericAmount)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600">
-                      <span>מעמ 17%</span>
+                      <span>מעמ 18%</span>
                       <span dir="ltr">{formatCurrency(vatAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold text-orange-800 pt-1 border-t border-orange-200">

@@ -12,15 +12,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const log = await createFuelLog({
-    equipmentId,
-    date,
-    liters: parseFloat(liters),
-    pricePerLiter: parseFloat(pricePerLiter),
-    totalCost: parseFloat(totalCost),
-    workSiteId: workSiteId || null,
-    mileage: mileage ? parseInt(mileage) : null,
-    notes: notes || null,
-  });
-  return NextResponse.json(log, { status: 201 });
+  try {
+    const log = await createFuelLog({
+      equipmentId,
+      date,
+      liters: parseFloat(liters),
+      pricePerLiter: parseFloat(pricePerLiter),
+      totalCost: parseFloat(totalCost),
+      workSiteId: workSiteId || null,
+      mileage: mileage ? parseInt(mileage) : null,
+      notes: notes || null,
+    });
+    return NextResponse.json(log, { status: 201 });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

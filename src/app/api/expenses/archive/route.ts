@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     const archive = await archiveCurrentExpenses(name.trim(), notes || null);
     return NextResponse.json(archive, { status: 201 });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה בארכיון" }, { status: 400 });
+    const msg = e instanceof Error ? e.message : "שגיאה בארכיון";
+    const isUserError = msg.includes("אין נתונים");
+    return NextResponse.json({ error: msg }, { status: isUserError ? 400 : 500 });
   }
 }
