@@ -3,6 +3,7 @@ import { getEquipmentById } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import EquipmentTabs from "@/components/EquipmentTabs";
+import DeleteEquipmentButton from "@/components/DeleteEquipmentButton";
 
 const typeLabel: Record<string, string> = {
   TRUCK: "משאית", MINI_EXCAVATOR: "מיני מחפרון", BOBCAT: "בובקט", OTHER: "אחר",
@@ -74,12 +75,31 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
               </span>
             </div>
           )}
+          {eq.testDate && (() => {
+            const days = Math.ceil((new Date(eq.testDate).getTime() - Date.now()) / 86400000);
+            const isUrgent = days <= 30;
+            const isExpired = days < 0;
+            return (
+              <div className={`flex items-center gap-1.5 mt-1 sm:mr-8 ${isExpired ? "text-red-500" : isUrgent ? "text-orange-500" : "text-gray-400"}`}>
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs font-medium">
+                  טסט: {new Date(eq.testDate).toLocaleDateString("he-IL")}
+                  {isExpired ? ` · פג לפני ${Math.abs(days)} ימים` : isUrgent ? ` · עוד ${days} ימים` : ""}
+                </span>
+              </div>
+            );
+          })()}
         </div>
         {isAdmin && (
-          <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm flex-shrink-0 w-fit">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-            עריכה
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href={`/equipment/${eq.id}/edit`} className="flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-3 py-2 rounded-xl transition-colors text-sm flex-shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              עריכה
+            </Link>
+            <DeleteEquipmentButton id={eq.id} name={eq.name} />
+          </div>
         )}
       </div>
 
