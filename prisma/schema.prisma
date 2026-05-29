@@ -54,6 +54,19 @@ model WorkSite {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   transactions  Transaction[]
+  budgetAreas   ProjectBudgetArea[]
+}
+
+model ProjectBudgetArea {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         WorkSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name         String
+  budgetAmount Float    @default(0)
+  notes        String?
+  color        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Transaction {
