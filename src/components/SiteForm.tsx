@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Site = {
   id: string;
@@ -86,10 +84,14 @@ export default function SiteForm({ site }: { site?: Site }) {
     if (workOrderFile) {
       setUploadProgress(true);
       try {
-        const fileRef = ref(storage, `work-orders/${crypto.randomUUID()}-${workOrderFile.name}`);
-        await uploadBytes(fileRef, workOrderFile);
-        workOrderUrl = await getDownloadURL(fileRef);
-      } catch (err) {
+        const fd = new FormData();
+        fd.append("file", workOrderFile);
+        fd.append("folder", "work-orders");
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!uploadRes.ok) throw new Error("upload failed");
+        const { url } = await uploadRes.json();
+        workOrderUrl = url;
+      } catch {
         setError("שגיאה בהעלאת הקובץ");
         setLoading(false);
         setUploadProgress(false);
