@@ -79,50 +79,65 @@ export default function SiteForm({ site }: { site?: Site }) {
     setLoading(true);
     setError("");
 
-    let workOrderUrl: string | null = site?.workOrderUrl ?? null;
+    try {
+      let workOrderUrl: string | null = site?.workOrderUrl ?? null;
 
-    if (workOrderFile) {
-      setUploadProgress(true);
-      try {
-        const fd = new FormData();
-        fd.append("file", workOrderFile);
-        fd.append("folder", "work-orders");
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!uploadRes.ok) throw new Error("upload failed");
-        const { url } = await uploadRes.json();
-        workOrderUrl = url;
-      } catch {
-        setError("שגיאה בהעלאת הקובץ");
-        setLoading(false);
-        setUploadProgress(false);
-        return;
+      if (workOrderFile) {
+        setUploadProgress(true);
+        try {
+          const fd = new FormData();
+          fd.append("file", workOrderFile);
+          fd.append("folder", "work-orders");
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 30000);
+          const uploadRes = await fetch("/api/upload", { method: "POST", body: fd, signal: controller.signal });
+          clearTimeout(timeout);
+          if (uploadRes.ok) {
+            const { url } = await uploadRes.json();
+            workOrderUrl = url;
+          } else {
+            const errBody = await uploadRes.json().catch(() => ({}));
+            console.error("upload error:", uploadRes.status, errBody);
+            setError(`שגיאה בהעלאת הקובץ (${uploadRes.status})`);
+            return;
+          }
+        } catch (uploadErr) {
+          console.error("upload exception:", uploadErr);
+          setError("שגיאה בהעלאת הקובץ — נסה קובץ קטן יותר או המשך ללא קובץ");
+          return;
+        } finally {
+          setUploadProgress(false);
+        }
       }
-      setUploadProgress(false);
-    }
 
-    const body = {
-      ...form,
-      contractValue: form.contractValue ? contractNet : null,
-      startDate: form.startDate || null,
-      endDate: form.endDate || null,
-      workOrderUrl,
-      lat: coords?.lat ?? null,
-      lng: coords?.lng ?? null,
-    };
+      const body = {
+        ...form,
+        contractValue: form.contractValue ? contractNet : null,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+        workOrderUrl,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      };
 
-    const res = await fetch(site ? `/api/sites/${site.id}` : "/api/sites", {
-      method: site ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+      const res = await fetch(site ? `/api/sites/${site.id}` : "/api/sites", {
+        method: site ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      router.push(`/sites/${data.id}`);
-      router.refresh();
-    } else {
-      const err = await res.json();
-      setError(err.error || "שגיאה בשמירה");
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/sites/${data.id}`);
+        router.refresh();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setError(err.error || `שגיאה בשמירה (${res.status})`);
+      }
+    } catch (err) {
+      console.error("submit error:", err);
+      setError("שגיאה בלתי צפויה — נסה שוב");
+    } finally {
       setLoading(false);
     }
   }
