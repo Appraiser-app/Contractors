@@ -31,10 +31,12 @@ export default async function DashboardPage() {
   ]);
 
   const VAT = 0.18;
-  const contractsIncome = sites.reduce((s, site) => s + (site.contractValue || 0), 0);
-  const totalIncomeNet = contractsIncome + allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const expectedIncomeNet = sites.reduce((s, site) => s + (site.contractValue || 0), 0);
+  const actualIncomeNet = allTransactions.filter(t => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const totalIncomeNet = actualIncomeNet;
   const totalVat = totalIncomeNet * VAT;
   const totalIncome = totalIncomeNet * (1 + VAT);
+  const expectedIncome = expectedIncomeNet * (1 + VAT);
   const txExpense = allTransactions.filter(t => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
   const generalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const totalExpense = txExpense + generalExpenses;
@@ -97,6 +99,12 @@ export default async function DashboardPage() {
               <span className="text-white/60">הוצאות</span>
               <span className="text-white/90 font-medium">−{formatCurrency(totalExpense)}</span>
             </div>
+            {expectedIncome > 0 && (
+              <div className="flex justify-between text-xs pt-1 border-t border-white/10">
+                <span className="text-white/50">צפי מחוזים</span>
+                <span className="text-white/70 font-medium">{formatCurrency(expectedIncome)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -111,6 +119,9 @@ export default async function DashboardPage() {
           </div>
           <p className="text-xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
           <p className="text-xs text-gray-400 mt-1">מע״מ 18%: {formatCurrency(totalVat)}</p>
+          {expectedIncome > 0 && (
+            <p className="text-xs text-blue-400 mt-1">צפי מחוזים: {formatCurrency(expectedIncome)}</p>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow">
