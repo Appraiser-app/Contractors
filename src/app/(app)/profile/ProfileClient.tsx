@@ -5,12 +5,22 @@ import { useRouter } from "next/navigation";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
+const TRADES = ["Electrical", "Plumbing", "HVAC", "Roofing", "Framing", "Concrete", "Excavation", "Painting", "Drywall", "Flooring", "Landscaping", "Other"];
+
 type Profile = {
   id: string;
   name: string;
   email: string;
   role: string;
   isSuperAdmin: boolean | null;
+  userRole?: string;
+  zipCode?: string | null;
+  trade?: string | null;
+  bio?: string | null;
+  businessName?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  serviceRadius?: number;
 };
 
 const roleLabels: Record<string, string> = {
@@ -39,6 +49,32 @@ export default function ProfileClient({
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [claimSuccess, setClaimSuccess] = useState(false);
+
+  // BuildersBooks profile fields
+  const [bbForm, setBbForm] = useState({
+    userRole: profile.userRole || "COMMUNITY",
+    zipCode: profile.zipCode || "",
+    trade: profile.trade || "",
+    bio: profile.bio || "",
+    businessName: profile.businessName || "",
+    website: profile.website || "",
+    phone: profile.phone || "",
+    serviceRadius: profile.serviceRadius || 25,
+  });
+  const [savingBb, setSavingBb] = useState(false);
+  const [bbSuccess, setBbSuccess] = useState(false);
+
+  async function handleSaveBb(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingBb(true);
+    const res = await fetch("/api/users/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bbForm),
+    });
+    setSavingBb(false);
+    if (res.ok) { setBbSuccess(true); setTimeout(() => setBbSuccess(false), 3000); router.refresh(); }
+  }
 
   async function handleSaveName(e: React.FormEvent) {
     e.preventDefault();
@@ -159,6 +195,69 @@ export default function ProfileClient({
               dir="ltr"
             />
           </div>
+        </form>
+      </div>
+
+      {/* BuildersBooks Profile */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          </div>
+          <h2 className="font-bold text-gray-900">BuildersBooks Profile</h2>
+        </div>
+        <form onSubmit={handleSaveBb} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
+            <div className="flex gap-2">
+              {[{v: "GC", l: "General Contractor"}, {v: "SUB", l: "Subcontractor"}, {v: "COMMUNITY", l: "Community"}].map(r => (
+                <button key={r.v} type="button" onClick={() => setBbForm(p => ({...p, userRole: r.v}))}
+                  className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all border ${bbForm.userRole === r.v ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                  {r.l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Business Name</label>
+              <input value={bbForm.businessName} onChange={e => setBbForm(p => ({...p, businessName: e.target.value}))} placeholder="ABC Construction" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Trade</label>
+              <select value={bbForm.trade} onChange={e => setBbForm(p => ({...p, trade: e.target.value}))} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400">
+                <option value="">Select trade</option>
+                {TRADES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Zip Code</label>
+              <input value={bbForm.zipCode} onChange={e => setBbForm(p => ({...p, zipCode: e.target.value}))} placeholder="90210" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Service Radius (miles)</label>
+              <input type="number" value={bbForm.serviceRadius} onChange={e => setBbForm(p => ({...p, serviceRadius: parseInt(e.target.value)}))} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Bio</label>
+            <textarea value={bbForm.bio} onChange={e => setBbForm(p => ({...p, bio: e.target.value}))} rows={3} placeholder="Tell others about your experience and specialties..." className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400 resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Phone</label>
+              <input value={bbForm.phone} onChange={e => setBbForm(p => ({...p, phone: e.target.value}))} placeholder="+1 (555) 000-0000" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Website</label>
+              <input value={bbForm.website} onChange={e => setBbForm(p => ({...p, website: e.target.value}))} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400" />
+            </div>
+          </div>
+          <button type="submit" disabled={savingBb} className="w-full py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50">
+            {savingBb ? "Saving..." : bbSuccess ? "Saved ✓" : "Save BuildersBooks Profile"}
+          </button>
         </form>
       </div>
 

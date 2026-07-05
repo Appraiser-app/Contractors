@@ -13,6 +13,19 @@ enum Role {
   SECRETARY
 }
 
+enum UserRole {
+  GC
+  SUB
+  COMMUNITY
+}
+
+enum BidStatus {
+  PENDING
+  REVIEWED
+  AWARDED
+  DECLINED
+}
+
 enum SiteStatus {
   ACTIVE
   COMPLETED
@@ -31,13 +44,27 @@ enum ApprovalStatus {
 }
 
 model Profile {
-  id                  String   @id
-  email               String   @unique
+  id                  String    @id
+  email               String    @unique
   name                String
-  role                Role     @default(SECRETARY)
+  role                Role      @default(SECRETARY)
   googleRefreshToken  String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  // BuildersBooks social profile fields
+  userRole            UserRole  @default(COMMUNITY)
+  zipCode             String?
+  trade               String?
+  bio                 String?
+  avatarUrl           String?
+  phone               String?
+  businessName        String?
+  website             String?
+  serviceRadius       Int       @default(25)
+  language            String    @default("en")
+  isVerified          Boolean   @default(false)
+  rating              Float     @default(0)
+  ratingCount         Int       @default(0)
 }
 
 model WorkSite {
@@ -226,4 +253,98 @@ model Task {
   createdBy   String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+// =============================================
+// BuildersBooks Social Network Models
+// =============================================
+
+model Post {
+  id         String        @id @default(cuid())
+  authorId   String
+  content    String?
+  imageUrls  String[]
+  trade      String?
+  zipCode    String?
+  likesCount Int           @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  likes      PostLike[]
+  comments   PostComment[]
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model PublicProject {
+  id          String   @id @default(cuid())
+  authorId    String
+  title       String
+  description String?
+  trade       String
+  zipCode     String
+  budget      Float?
+  timeline    String?
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bids        Bid[]
+}
+
+model Bid {
+  id           String        @id @default(cuid())
+  projectId    String
+  project      PublicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bidderId     String
+  price        Float
+  availability String?
+  notes        String?
+  status       BidStatus     @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  participant1  String
+  participant2  String
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  messages      Message[]
+  @@unique([participant1, participant2])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  reviewerId String
+  revieweeId String
+  projectId  String?
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
 }
