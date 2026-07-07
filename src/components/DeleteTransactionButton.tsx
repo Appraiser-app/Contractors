@@ -8,39 +8,53 @@ export default function DeleteTransactionButton({
 }: { transactionId: string }) {
 	const [confirm, setConfirm] = useState(false);
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 	const router = useRouter();
 
 	async function handleDelete() {
 		setLoading(true);
-		const res = await fetch(`/api/transactions/${transactionId}`, {
-			method: "DELETE",
-		});
-		if (res.ok) {
-			router.refresh();
-		} else {
+		setError("");
+		try {
+			const res = await fetch(`/api/transactions/${transactionId}`, {
+				method: "DELETE",
+			});
+			if (res.ok) {
+				router.refresh();
+			} else {
+				const data = await res.json().catch(() => ({}));
+				setError(data.error || `שגיאה ${res.status}`);
+				setLoading(false);
+			}
+		} catch {
+			setError("שגיאת רשת");
 			setLoading(false);
-			setConfirm(false);
 		}
 	}
 
 	if (confirm) {
 		return (
-			<div className="flex items-center gap-1.5">
-				<button
-					type="button"
-					onClick={handleDelete}
-					disabled={loading}
-					className="text-xs bg-red-500 hover:bg-red-400 text-white font-semibold px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60"
-				>
-					{loading ? "מוחק..." : "מחק"}
-				</button>
-				<button
-					type="button"
-					onClick={() => setConfirm(false)}
-					className="text-xs border border-gray-200 text-gray-500 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-				>
-					ביטול
-				</button>
+			<div className="flex flex-col items-end gap-1">
+				<div className="flex items-center gap-1.5">
+					<button
+						type="button"
+						onClick={handleDelete}
+						disabled={loading}
+						className="text-xs bg-red-500 hover:bg-red-400 text-white font-semibold px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+					>
+						{loading ? "מוחק..." : "מחק"}
+					</button>
+					<button
+						type="button"
+						onClick={() => {
+							setConfirm(false);
+							setError("");
+						}}
+						className="text-xs border border-gray-200 text-gray-500 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+					>
+						ביטול
+					</button>
+				</div>
+				{error && <p className="text-xs text-red-500">{error}</p>}
 			</div>
 		);
 	}
