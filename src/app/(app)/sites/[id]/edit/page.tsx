@@ -15,29 +15,28 @@ export default async function EditSitePage({
 	return (
 		<div className="p-4 sm:p-6 lg:p-8 max-w-2xl">
 			<div className="mb-5 sm:mb-8">
-				<div className="flex items-center gap-3 mb-1">
-					<Link
-						href={`/sites/${id}`}
-						className="text-gray-400 hover:text-gray-600 transition-colors"
+				<Link
+					href={`/sites/${id}`}
+					className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-3 group"
+				>
+					<svg
+						aria-hidden="true"
+						className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
 					>
-						<svg
-							aria-hidden="true"
-							className="w-5 h-5"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M15 19l-7-7 7-7"
-							/>
-						</svg>
-					</Link>
-					<h1 className="text-2xl font-bold text-gray-900">עריכת אתר</h1>
-				</div>
-				<p className="text-gray-500 text-sm mr-8">{site.name}</p>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M9 5l7 7-7 7"
+						/>
+					</svg>
+					חזרה לפרוייקט
+				</Link>
+				<h1 className="text-2xl font-bold text-gray-900">עריכת אתר</h1>
+				<p className="text-gray-500 text-sm mt-1">{site.name}</p>
 			</div>
 			<SiteForm
 				site={{
