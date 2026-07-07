@@ -596,8 +596,10 @@ export type Expense = {
   vatIncluded: boolean | null;
   expenseType: "CASH" | "INVOICE" | null;
   invoiceUrl: string | null;
+  invoiceFileName: string | null;
   date: string;
   receiptUrl: string | null;
+  receiptFileName: string | null;
   notes: string | null;
   createdById: string | null;
   archiveId: string | null;

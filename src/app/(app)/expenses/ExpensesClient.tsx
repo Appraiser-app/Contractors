@@ -17,8 +17,10 @@ type Expense = {
   vatIncluded: boolean | null;
   expenseType: "CASH" | "INVOICE" | null;
   invoiceUrl: string | null;
+  invoiceFileName: string | null;
   date: string;
   receiptUrl: string | null;
+  receiptFileName: string | null;
   notes: string | null;
   createdAt: string;
 };
@@ -240,9 +242,11 @@ export default function ExpensesClient({
         vatIncluded: form.vatIncluded,
         expenseType: !form.vatIncluded ? (form.expenseType || null) : null,
         invoiceUrl: !form.vatIncluded && form.expenseType === "INVOICE" ? (form.invoiceUrl || null) : null,
+        invoiceFileName: !form.vatIncluded && form.expenseType === "INVOICE" ? (form.invoiceFileName || null) : null,
         date: form.date,
         notes: form.notes || null,
         receiptUrl: form.receiptUrl || null,
+        receiptFileName: form.receiptFileName || null,
       }),
     });
 
@@ -547,19 +551,23 @@ export default function ExpensesClient({
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-sm font-bold text-red-600">{formatCurrency(expense.amount)}</span>
                   {expense.invoiceUrl && (
-                    <a href={expense.invoiceUrl} target="_blank" rel="noopener noreferrer" title="פתח חשבונית"
-                      className="text-indigo-300 hover:text-indigo-600 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href={expense.invoiceUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-xs font-medium max-w-[120px]"
+                      title={expense.invoiceFileName || "פתח חשבונית"}>
+                      <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
+                      <span className="truncate">{expense.invoiceFileName || "חשבונית"}</span>
                     </a>
                   )}
                   {expense.receiptUrl && (
-                    <a href={expense.receiptUrl} target="_blank" rel="noopener noreferrer" title="פתח קבלה"
-                      className="text-gray-300 hover:text-blue-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href={expense.receiptUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors text-xs font-medium max-w-[120px]"
+                      title={expense.receiptFileName || "פתח קבלה"}>
+                      <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                       </svg>
+                      <span className="truncate">{expense.receiptFileName || "קבלה"}</span>
                     </a>
                   )}
                   <button
