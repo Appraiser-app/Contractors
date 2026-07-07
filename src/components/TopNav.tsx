@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Profile = {
 	id: string;
@@ -28,6 +28,7 @@ const socialNavItems = [
 		label: "בית",
 		icon: (active: boolean) => (
 			<svg
+				aria-hidden="true"
 				className={`w-6 h-6 ${active ? "text-green-600" : "text-gray-500"}`}
 				fill={active ? "currentColor" : "none"}
 				stroke="currentColor"
@@ -50,6 +51,7 @@ const socialNavItems = [
 		label: "שוק",
 		icon: (active: boolean) => (
 			<svg
+				aria-hidden="true"
 				className={`w-6 h-6 ${active ? "text-green-600" : "text-gray-500"}`}
 				fill={active ? "currentColor" : "none"}
 				stroke="currentColor"
@@ -69,6 +71,7 @@ const socialNavItems = [
 		label: "אנשי מקצוע",
 		icon: (active: boolean) => (
 			<svg
+				aria-hidden="true"
 				className={`w-6 h-6 ${active ? "text-green-600" : "text-gray-500"}`}
 				fill={active ? "currentColor" : "none"}
 				stroke="currentColor"
@@ -88,6 +91,7 @@ const socialNavItems = [
 		label: "הודעות",
 		icon: (active: boolean) => (
 			<svg
+				aria-hidden="true"
 				className={`w-6 h-6 ${active ? "text-green-600" : "text-gray-500"}`}
 				fill={active ? "currentColor" : "none"}
 				stroke="currentColor"
@@ -111,20 +115,20 @@ function NotificationBell() {
 	const ref = useRef<HTMLDivElement>(null);
 	const router = useRouter();
 
-	async function load() {
+	const load = useCallback(async () => {
 		const res = await fetch("/api/notifications");
 		if (res.ok) {
 			const data = await res.json();
 			setNotifications(data.notifications);
 			setUnreadCount(data.unreadCount);
 		}
-	}
+	}, []);
 
 	useEffect(() => {
 		load();
 		const interval = setInterval(load, 30000);
 		return () => clearInterval(interval);
-	}, []);
+	}, [load]);
 
 	useEffect(() => {
 		function handleClick(e: MouseEvent) {
@@ -174,10 +178,13 @@ function NotificationBell() {
 	return (
 		<div className="relative" ref={ref}>
 			<button
+				type="button"
+				aria-label="התראות"
 				onClick={() => setOpen((o) => !o)}
 				className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-colors ${open ? "bg-green-100" : "bg-gray-100 hover:bg-gray-200"}`}
 			>
 				<svg
+					aria-hidden="true"
 					className={`w-5 h-5 ${open ? "text-green-600" : "text-gray-700"}`}
 					fill="none"
 					stroke="currentColor"
@@ -206,6 +213,7 @@ function NotificationBell() {
 						<p className="font-bold text-gray-900 text-lg">התראות</p>
 						{unreadCount > 0 && (
 							<button
+								type="button"
 								onClick={markAll}
 								className="text-xs text-green-600 hover:text-green-700 font-medium"
 							>
@@ -221,6 +229,7 @@ function NotificationBell() {
 						) : (
 							notifications.map((notif) => (
 								<button
+									type="button"
 									key={notif.id}
 									onClick={() => handleNotifClick(notif)}
 									className={`w-full text-right px-5 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${!notif.isRead ? "bg-green-50/50" : ""}`}
@@ -286,6 +295,8 @@ function ProfileMenu({ profile }: { profile: Profile }) {
 	return (
 		<div className="relative" ref={ref}>
 			<button
+				type="button"
+				aria-label="תפריט פרופיל"
 				onClick={() => setOpen((o) => !o)}
 				className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center hover:opacity-90 transition-opacity ring-2 ring-transparent hover:ring-green-300 flex-shrink-0"
 			>
@@ -325,10 +336,12 @@ function ProfileMenu({ profile }: { profile: Profile }) {
 					</Link>
 					<div className="p-2">
 						<button
+							type="button"
 							onClick={handleLogout}
 							className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
 						>
 							<svg
+								aria-hidden="true"
 								className="w-5 h-5"
 								fill="none"
 								stroke="currentColor"
@@ -377,6 +390,7 @@ export default function TopNav({ profile }: { profile: Profile }) {
 					>
 						<div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
 							<svg
+								aria-hidden="true"
 								className="w-5 h-5 text-white"
 								fill="none"
 								stroke="currentColor"
@@ -398,6 +412,7 @@ export default function TopNav({ profile }: { profile: Profile }) {
 					{/* Search */}
 					<div className="hidden md:flex items-center bg-gray-100 rounded-full px-4 py-2 gap-2 w-52 mr-2">
 						<svg
+							aria-hidden="true"
 							className="w-4 h-4 text-gray-400 flex-shrink-0"
 							fill="none"
 							stroke="currentColor"
@@ -441,10 +456,12 @@ export default function TopNav({ profile }: { profile: Profile }) {
 					<div className="flex items-center gap-1.5 mr-auto">
 						{/* Internal tools button */}
 						<button
+							type="button"
 							onClick={() => setMobileMenuOpen((v) => !v)}
 							className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium text-gray-700 transition-colors"
 						>
 							<svg
+								aria-hidden="true"
 								className="w-4 h-4"
 								fill="none"
 								stroke="currentColor"
@@ -471,7 +488,15 @@ export default function TopNav({ profile }: { profile: Profile }) {
 				<>
 					<div
 						className="fixed inset-0 z-50 bg-black/40"
+						role="button"
+						tabIndex={0}
+						aria-label="סגור תפריט"
 						onClick={() => setMobileMenuOpen(false)}
+						onKeyDown={(e) =>
+							e.key === "Enter" || e.key === " "
+								? setMobileMenuOpen(false)
+								: undefined
+						}
 					/>
 					<div
 						className="fixed top-14 right-0 w-72 bg-white shadow-2xl z-50 rounded-bl-2xl overflow-hidden border-l border-gray-100"
@@ -506,10 +531,12 @@ export default function TopNav({ profile }: { profile: Profile }) {
 					);
 				})}
 				<button
+					type="button"
 					onClick={() => setMobileMenuOpen((v) => !v)}
 					className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500"
 				>
 					<svg
+						aria-hidden="true"
 						className="w-6 h-6"
 						fill="none"
 						stroke="currentColor"
