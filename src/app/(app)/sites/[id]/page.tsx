@@ -55,7 +55,7 @@ export default async function SitePage({
 		.filter((t) => t.type === "EXPENSE")
 		.reduce((s, t) => s + t.amount, 0);
 	const balance = income - expense;
-	const isAdmin = profile?.role === "ADMIN";
+	const isAdmin = profile?.role === "ADMIN" || profile?.isSuperAdmin === true;
 
 	return (
 		<div className="p-4 sm:p-6 lg:p-8">
