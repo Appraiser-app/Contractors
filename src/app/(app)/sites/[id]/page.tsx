@@ -1,9 +1,10 @@
 import AddTransactionForm from "@/components/AddTransactionForm";
 import CompleteWorkButton from "@/components/CompleteWorkButton";
 import DeleteSiteButton from "@/components/DeleteSiteButton";
-import DeleteTransactionButton from "@/components/DeleteTransactionButton";
+import SiteTasksClient from "@/components/SiteTasksClient";
+import TransactionsListClient from "@/components/TransactionsListClient";
 import { getProfile, requireAuth } from "@/lib/auth";
-import { getSiteById } from "@/lib/db";
+import { getSiteById, getTasksBySite } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -26,13 +27,6 @@ function formatCurrency(amount: number) {
 	}).format(amount);
 }
 
-function formatDate(date: string) {
-	return new Intl.DateTimeFormat("he-IL", {
-		day: "numeric",
-		month: "long",
-		year: "numeric",
-	}).format(new Date(date));
-}
 
 export default async function SitePage({
 	params,
@@ -43,6 +37,8 @@ export default async function SitePage({
 
 	const site = await getSiteById(id);
 	if (!site) notFound();
+
+	const tasks = await getTasksBySite(id);
 
 	const VAT = 0.18;
 	const transactions = site.transactions || [];
@@ -207,96 +203,14 @@ export default async function SitePage({
 			)}
 
 			<div className="mb-4 sm:mb-6">
+				<SiteTasksClient tasks={tasks} siteId={site.id} isAdmin={isAdmin} />
+			</div>
+
+			<div className="mb-4 sm:mb-6">
 				<AddTransactionForm siteId={site.id} />
 			</div>
 
-			<div className="bg-white rounded-2xl border border-gray-100">
-				<div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-50">
-					<h2 className="font-bold text-gray-900">
-						תנועות ({transactions.length})
-					</h2>
-				</div>
-				{transactions.length === 0 ? (
-					<div className="p-8 sm:p-12 text-center">
-						<p className="text-gray-400 text-sm">אין תנועות עדיין</p>
-					</div>
-				) : (
-					<div className="divide-y divide-gray-50">
-						{transactions
-							.sort(
-								(a, b) =>
-									new Date(b.date).getTime() - new Date(a.date).getTime(),
-							)
-							.map((t) => (
-								<div
-									key={t.id}
-									className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 gap-2"
-								>
-									<div className="flex items-center gap-2 sm:gap-3 min-w-0">
-										<div
-											className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center flex-shrink-0 ${t.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}
-										>
-											<svg
-												aria-hidden="true"
-												className={`w-4 h-4 ${t.type === "INCOME" ? "text-green-600" : "text-red-600"}`}
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d={
-														t.type === "INCOME"
-															? "M7 11l5-5m0 0l5 5m-5-5v12"
-															: "M17 13l-5 5m0 0l-5-5m5 5V6"
-													}
-												/>
-											</svg>
-										</div>
-										<div className="min-w-0">
-											<p className="text-sm font-medium text-gray-900 truncate">
-												{t.description}
-											</p>
-											<div className="flex flex-wrap gap-1.5 mt-0.5">
-												{t.category && (
-													<span className="text-xs text-gray-400">
-														{t.category}
-													</span>
-												)}
-												<span className="text-xs text-gray-400">
-													{formatDate(t.date)}
-												</span>
-												{t.receiptUrl && (
-													<a
-														href={t.receiptUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-xs text-blue-400 hover:text-blue-600"
-													>
-														📎 קבלה
-													</a>
-												)}
-											</div>
-										</div>
-									</div>
-									<div className="flex items-center gap-2 flex-shrink-0">
-										<span
-											className={`text-sm font-bold ${t.type === "INCOME" ? "text-green-600" : "text-red-600"}`}
-										>
-											{t.type === "INCOME" ? "+" : "-"}
-											{formatCurrency(t.amount)}
-										</span>
-										{isAdmin && (
-											<DeleteTransactionButton transactionId={t.id} />
-										)}
-									</div>
-								</div>
-							))}
-					</div>
-				)}
-			</div>
+			<TransactionsListClient transactions={transactions} isAdmin={isAdmin} />
 		</div>
 	);
 }
