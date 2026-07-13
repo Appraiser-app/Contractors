@@ -30,3 +30,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
+
+export async function GET() {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const { getAllProfiles } = await import("@/lib/db");
+    const profiles = await getAllProfiles();
+    return NextResponse.json(
+      profiles
+        .filter((p) => p.isActive !== false)
+        .map((p) => ({ id: p.id, name: p.name, email: p.email, role: p.role }))
+    );
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
