@@ -6,8 +6,13 @@ export async function POST(req: Request) {
   const profile = await getProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Only existing admins can promote
+  if (profile.role !== "ADMIN") {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+
   const { secret } = await req.json();
-  if (secret !== process.env.SETUP_SECRET && secret !== "contractors-setup-2024") {
+  if (!process.env.SETUP_SECRET || secret !== process.env.SETUP_SECRET) {
     return NextResponse.json({ error: "סוד שגוי" }, { status: 403 });
   }
 

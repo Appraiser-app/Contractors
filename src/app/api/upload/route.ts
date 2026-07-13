@@ -20,7 +20,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `הקובץ גדול מדי (${sizeMB.toFixed(1)}MB) — מקסימום 20MB` }, { status: 413 });
     }
 
+    // Whitelist allowed file types
+    const ALLOWED_TYPES = [
+      "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic",
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+    const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "heic", "pdf", "xlsx", "xls", "docx", "doc"];
+
     const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    if (!ALLOWED_EXTENSIONS.includes(ext) || !ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: `סוג קובץ לא מורשה. מותר: תמונות, PDF, Excel, Word` }, { status: 415 });
+    }
     const filename = `receipts/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     const bytes = await file.arrayBuffer();
@@ -47,6 +61,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (err) {
     console.error("Upload error:", err);
-    return NextResponse.json({ error: `שגיאת שרת: ${String(err).slice(0, 100)}` }, { status: 500 });
+    return NextResponse.json({ error: "שגיאה בהעלאת הקובץ. נסה שוב." }, { status: 500 });
   }
 }

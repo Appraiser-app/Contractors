@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const { users, secret } = await req.json();
 
-    if (secret !== process.env.SETUP_SECRET && secret !== "contractors-setup-2024") {
+    if (!process.env.SETUP_SECRET || secret !== process.env.SETUP_SECRET) {
       return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
     }
 
@@ -18,12 +18,12 @@ export async function POST(req: Request) {
     let existingAdmins = 0;
     try {
       existingAdmins = await countAdmins();
-    } catch (dbErr) {
-      return NextResponse.json({ error: "DB error", detail: String(dbErr) }, { status: 500 });
+    } catch {
+      return NextResponse.json({ error: "DB error" }, { status: 500 });
     }
 
     if (existingAdmins > 0) {
-      return NextResponse.json({ error: "Setup already completed" }, { status: 400 });
+      return NextResponse.json({ error: "Setup already completed" }, { status: 403 });
     }
 
     const created = [];
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, created, errors });
-  } catch (e) {
-    return NextResponse.json({ error: "Unexpected error", detail: String(e) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
 }

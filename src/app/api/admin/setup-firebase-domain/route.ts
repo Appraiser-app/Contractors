@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST() {
   try {
+    await requireAdmin();
     // Get access token from Firebase Admin
     const app = (adminAuth as any).app;
     const credential = app.options.credential;

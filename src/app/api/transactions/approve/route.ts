@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getUser, getProfile } from "@/lib/auth";
 import { approveTransaction, rejectTransaction, getProfileById, createNotification } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Only ADMIN or MANAGER can approve/reject transactions
+  const currentProfile = await getProfile();
+  if (!currentProfile || !["ADMIN", "MANAGER"].includes(currentProfile.role)) {
+    return NextResponse.json({ error: "נדרשת הרשאת מנהל לאישור תנועות" }, { status: 403 });
+  }
 
   const { transactionId, action } = await req.json();
   if (!transactionId || !["approve", "reject"].includes(action)) {
