@@ -154,30 +154,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-green-900/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-green-900/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-sm relative">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-2xl mb-4 shadow-xl shadow-green-900/40">
-            <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-2xl mb-5 shadow-2xl shadow-green-900/50">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">ניהול קבלן עפר</h1>
-          <p className="text-stone-400 text-sm mt-1">שגיא ודור</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">BuildersBooks</h1>
+          <p className="text-gray-500 text-sm mt-1">ניהול קבלן עפר — שגיא ודור</p>
         </div>
 
         {mode !== "forgot" && (
-          <div className="flex bg-stone-800/60 rounded-2xl p-1 mb-4 border border-stone-700/50">
+          <div className="flex bg-gray-900 rounded-2xl p-1 mb-4 border border-gray-800">
             {(["login", "signup"] as Mode[]).map(m => (
               <button key={m} onClick={() => switchMode(m)}
-                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${mode === m ? "bg-green-600 text-white shadow-md" : "text-stone-400 hover:text-white"}`}>
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${mode === m ? "bg-green-600 text-white shadow-lg shadow-green-900/40" : "text-gray-500 hover:text-gray-300"}`}>
                 {m === "login" ? "כניסה" : "הרשמה"}
               </button>
             ))}
           </div>
         )}
 
-        <div className="bg-stone-800 rounded-2xl p-6 border border-stone-700 space-y-4">
+        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4 shadow-2xl">
           {mode === "forgot" ? (
             <>
               <div className="text-center">
@@ -186,19 +192,19 @@ export default function LoginPage() {
               </div>
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-300 mb-1.5">אימייל</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1.5">אימייל</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus
-                    className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                    className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                     placeholder="name@example.com" dir="ltr" />
                 </div>
                 {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>}
                 {success && <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm text-center">{success}</div>}
                 <button type="submit" disabled={loading}
-                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-stone-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
+                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-green-900/20">
                   {loading ? "שולח..." : "שלח קישור לאיפוס"}
                 </button>
                 <button type="button" onClick={() => switchMode("login")}
-                  className="w-full text-stone-400 hover:text-white text-sm py-2 transition-colors">
+                  className="w-full text-gray-600 hover:text-gray-300 text-sm py-2 transition-colors">
                   ← חזרה לכניסה
                 </button>
               </form>
@@ -206,7 +212,7 @@ export default function LoginPage() {
           ) : (
             <>
               <button type="button" onClick={handleGoogleLogin} disabled={googleLoading || loading}
-                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 disabled:bg-stone-600 disabled:cursor-not-allowed text-gray-800 font-semibold py-3 rounded-xl transition-colors">
+                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-800 font-semibold py-3 rounded-xl transition-colors shadow-sm">
                 {googleLoading ? (
                   <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -224,32 +230,32 @@ export default function LoginPage() {
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-stone-700" />
-                <span className="text-stone-500 text-xs">או</span>
-                <div className="flex-1 h-px bg-stone-700" />
+                <div className="flex-1 h-px bg-gray-800" />
+                <span className="text-gray-600 text-xs">או</span>
+                <div className="flex-1 h-px bg-gray-800" />
               </div>
 
               {mode === "login" && (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">אימייל</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">אימייל</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                      className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                       placeholder="name@example.com" dir="ltr" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">סיסמה</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">סיסמה</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                      className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                       placeholder="••••••••" />
                   </div>
                   {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>}
                   <button type="submit" disabled={loading || googleLoading}
-                    className="w-full bg-green-600 hover:bg-green-500 disabled:bg-stone-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
+                    className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-green-900/20">
                     {loading ? "מתחבר..." : "כניסה"}
                   </button>
                   <button type="button" onClick={() => switchMode("forgot")}
-                    className="w-full text-stone-500 hover:text-stone-300 text-sm py-1 transition-colors text-center">
+                    className="w-full text-gray-600 hover:text-gray-300 text-sm py-1 transition-colors text-center">
                     שכחתי סיסמה
                   </button>
                 </form>
@@ -258,42 +264,42 @@ export default function LoginPage() {
               {mode === "signup" && (
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">שם מלא</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">שם מלא</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required
-                      className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                       placeholder="ישראל ישראלי" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">אימייל</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">אימייל</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                      className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                       placeholder="name@example.com" dir="ltr" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">סיסמה</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">סיסמה</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                      className="w-full bg-stone-900 border border-stone-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                       placeholder="לפחות 6 תווים" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-300 mb-1.5">אימות סיסמה</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">אימות סיסמה</label>
                     <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                      className={`w-full bg-stone-900 border rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-green-600 transition ${confirmPassword && password !== confirmPassword ? "border-red-500" : "border-stone-600"}`}
+                      className={`w-full bg-gray-950 border rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition ${confirmPassword && password !== confirmPassword ? "border-red-500" : "border-gray-700"}`}
                       placeholder="••••••••" />
                   </div>
                   {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">{error}</div>}
                   {success && <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm text-center">{success}</div>}
                   <button type="submit" disabled={loading || googleLoading || (!!confirmPassword && password !== confirmPassword)}
-                    className="w-full bg-green-600 hover:bg-green-500 disabled:bg-stone-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
+                    className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-green-900/20">
                     {loading ? "נרשם..." : "צור חשבון"}
                   </button>
-                  <p className="text-stone-500 text-xs text-center">החשבון ייפתח עם הרשאות בסיסיות — מנהל המערכת יכול לשדרג הרשאות</p>
+                  <p className="text-gray-600 text-xs text-center">החשבון ייפתח עם הרשאות בסיסיות — מנהל המערכת יכול לשדרג הרשאות</p>
                 </form>
               )}
             </>
           )}
         </div>
-        <p className="text-center text-stone-600 text-xs mt-6">גישה לאנשי הצוות בלבד</p>
+        <p className="text-center text-gray-700 text-xs mt-6">גישה לאנשי הצוות בלבד</p>
       </div>
     </div>
   );
