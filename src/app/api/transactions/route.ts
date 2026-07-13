@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { siteId, type, amount, description, category, date, receiptUrl } = body;
+  const { siteId, type, amount, description, category, date, receiptUrl, invoiceStatus } = body;
 
   if (!siteId || !type || !amount || !description) return NextResponse.json({ error: "שדות חובה חסרים" }, { status: 400 });
   if (!["INCOME", "EXPENSE"].includes(type)) return NextResponse.json({ error: "סוג לא חוקי" }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       category: category || null,
       date: date || new Date().toISOString(),
       receiptUrl: receiptUrl || null,
+      invoiceStatus: invoiceStatus || null,
       createdById: user.id,
       approvalStatus: "PENDING",
     });

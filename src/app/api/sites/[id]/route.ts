@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import { updateSite, deleteSite, getSiteById, logActivity } from "@/lib/db";
 import { getUser, getProfile } from "@/lib/auth";
 
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const profile = await getProfile();
+  if (!profile || (profile.role !== "ADMIN" && !profile.isSuperAdmin)) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+
+  const { id } = await params;
+  const { status } = await req.json();
+
+  if (!["ACTIVE", "COMPLETED", "ON_HOLD"].includes(status)) {
+    return NextResponse.json({ error: "סטטוס לא תקין" }, { status: 400 });
+  }
+
+  try {
+    const site = await updateSite(id, { status });
+    logActivity({ userId: user.id, userName: profile.name, userEmail: profile.email, action: `שינה סטטוס פרויקט ל-${status}`, resource: "site", resourceId: id, resourceName: site.name }).catch(() => {});
+    return NextResponse.json(site);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -152,6 +152,12 @@ export async function createTransaction(txData: Partial<Transaction> & { workSit
   return data as Transaction;
 }
 
+export async function getTransactionById(id: string): Promise<Transaction | null> {
+  const doc = await adminDb.collection("transactions").doc(id).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() } as Transaction;
+}
+
 export async function deleteTransaction(id: string) {
   await adminDb.collection("transactions").doc(id).delete();
 }
@@ -381,6 +387,11 @@ export async function getAllTasks() {
   return snap<Task>(snapshot);
 }
 
+export async function getTasksBySite(siteId: string) {
+  const snapshot = await adminDb.collection("tasks").where("siteId", "==", siteId).orderBy("createdAt", "asc").get();
+  return snap<Task>(snapshot);
+}
+
 export async function createTask(task: Partial<Task>) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -484,10 +495,13 @@ export type WorkSite = {
   transactions?: Transaction[];
 };
 
+export type InvoiceStatus = "NOT_ISSUED" | "ISSUED" | "SENT" | "PAID";
+
 export type Transaction = {
   id: string; workSiteId: string; type: "INCOME" | "EXPENSE";
   amount: number; description: string; category: string | null; date: string;
   receiptUrl: string | null;
+  invoiceStatus: InvoiceStatus | null;
   approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
   createdById: string | null;
   approvedById: string | null;

@@ -24,6 +24,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
     description: "",
     category: "",
     date: new Date().toISOString().split("T")[0],
+    invoiceStatus: "" as "" | "NOT_ISSUED" | "ISSUED" | "SENT" | "PAID",
   });
 
   const VAT = 0.18;
@@ -57,11 +58,11 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
     const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, siteId, amount: amountNet, receiptUrl }),
+      body: JSON.stringify({ ...form, siteId, amount: amountNet, receiptUrl, invoiceStatus: form.invoiceStatus || null }),
     });
 
     if (res.ok) {
-      setForm({ type: "INCOME", amount: "", description: "", category: "", date: new Date().toISOString().split("T")[0] });
+      setForm({ type: "INCOME", amount: "", description: "", category: "", date: new Date().toISOString().split("T")[0], invoiceStatus: "" });
       setReceiptFile(null);
       setOpen(false);
       router.refresh();
@@ -153,6 +154,19 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
             {categories[form.type as "INCOME" | "EXPENSE"].map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
+          </select>
+        </div>
+
+        {/* Invoice status */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">סטטוס חשבונית</label>
+          <select value={form.invoiceStatus} onChange={(e) => update("invoiceStatus", e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white">
+            <option value="">לא רלוונטי</option>
+            <option value="NOT_ISSUED">לא הונפקה</option>
+            <option value="ISSUED">הונפקה</option>
+            <option value="SENT">נשלחה ללקוח</option>
+            <option value="PAID">שולמה</option>
           </select>
         </div>
 
