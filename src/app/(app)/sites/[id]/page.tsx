@@ -28,7 +28,7 @@ export default async function SitePage({
 	const site = await getSiteById(id);
 	if (!site) notFound();
 
-	const tasks = await getTasksBySite(id);
+	const tasks = await getTasksBySite(id).catch(() => []);
 
 	const VAT = 0.18;
 	const transactions = site.transactions || [];

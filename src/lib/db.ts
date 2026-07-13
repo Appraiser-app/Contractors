@@ -388,8 +388,8 @@ export async function getAllTasks() {
 }
 
 export async function getTasksBySite(siteId: string) {
-  const snapshot = await adminDb.collection("tasks").where("siteId", "==", siteId).orderBy("createdAt", "asc").get();
-  return snap<Task>(snapshot);
+  const snapshot = await adminDb.collection("tasks").where("siteId", "==", siteId).get();
+  return snap<Task>(snapshot).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export async function createTask(task: Partial<Task>) {
