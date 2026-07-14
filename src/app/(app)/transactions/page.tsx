@@ -202,11 +202,11 @@ export default function TransactionsPage() {
   if (loading) return <div className="p-8 text-gray-400">טוען...</div>;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">הכנסות והוצאות</h1>
+          <h1 className="text-2xl font-bold text-gray-900">הכנסות והוצאות</h1>
           <p className="text-gray-400 text-sm mt-1">
             {viewingArchive
               ? `ארכיון: ${viewingArchive.name} · ${displayTx.length} תנועות`
@@ -214,22 +214,23 @@ export default function TransactionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium">
+          <div className="hidden sm:flex bg-gray-100 rounded-xl p-1 text-xs font-semibold">
             <button onClick={() => setActiveTab("dashboard")}
-              className={`px-3 py-2 transition-colors ${activeTab === "dashboard" ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+              className={`px-4 py-1.5 rounded-lg transition-all ${activeTab === "dashboard" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
               דשבורד
             </button>
             <button onClick={() => setActiveTab("list")}
-              className={`px-3 py-2 border-r border-gray-200 transition-colors ${activeTab === "list" ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
-              רשימה {pendingCount > 0 && <span className="mr-1 bg-yellow-400 text-white rounded-full px-1.5 py-0.5">{pendingCount}</span>}
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${activeTab === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+              רשימה
+              {pendingCount > 0 && <span className="bg-amber-400 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">{pendingCount}</span>}
             </button>
           </div>
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm">
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shadow-sm shadow-green-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
-            הוסף הכנסה / הוצאה
+            הוסף תנועה
           </button>
         </div>
       </div>
@@ -265,52 +266,50 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Summary cards — always visible */}
+      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-green-50 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-green-700/60">סה״כ הכנסות</p>
+            <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 11l5-5m0 0l5 5m-5-5v12" />
               </svg>
             </div>
-            <p className="text-xs text-gray-400 font-medium">סה"כ הכנסות</p>
           </div>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
-          <div className="flex gap-2 mt-1 text-xs text-gray-400">
-            <span className="text-green-600">{formatCurrency(approvedIncome)} מאושר</span>
-            {totalIncome - approvedIncome > 0 && <span className="text-yellow-600">· {formatCurrency(totalIncome - approvedIncome)} ממתין</span>}
+          <p className="text-2xl font-bold text-green-700">{formatCurrency(totalIncome)}</p>
+          <div className="flex gap-2 mt-1.5 text-xs">
+            <span className="text-green-600 font-medium">{formatCurrency(approvedIncome)} מאושר</span>
+            {totalIncome - approvedIncome > 0 && <span className="text-amber-600">· {formatCurrency(totalIncome - approvedIncome)} ממתין</span>}
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-red-50 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-red-700/60">סה״כ הוצאות</p>
+            <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
               </svg>
             </div>
-            <p className="text-xs text-gray-400 font-medium">סה"כ הוצאות</p>
           </div>
-          <p className="text-2xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
-          <div className="flex gap-2 mt-1 text-xs text-gray-400">
-            <span className="text-red-500">{formatCurrency(approvedExpense)} מאושר</span>
-            {totalExpense - approvedExpense > 0 && <span className="text-yellow-600">· {formatCurrency(totalExpense - approvedExpense)} ממתין</span>}
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpense)}</p>
+          <div className="flex gap-2 mt-1.5 text-xs">
+            <span className="text-red-500 font-medium">{formatCurrency(approvedExpense)} מאושר</span>
+            {totalExpense - approvedExpense > 0 && <span className="text-amber-600">· {formatCurrency(totalExpense - approvedExpense)} ממתין</span>}
           </div>
         </div>
-        <div className={`rounded-2xl border p-5 ${balance >= 0 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${balance >= 0 ? "bg-green-200" : "bg-red-200"}`}>
-              <svg className={`w-3.5 h-3.5 ${balance >= 0 ? "text-green-700" : "text-red-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`rounded-2xl p-5 text-white ${balance >= 0 ? "bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-sm shadow-emerald-200" : "bg-gradient-to-br from-red-500 to-red-700 shadow-sm shadow-red-200"}`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-white/60">רווח נקי</p>
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-xs text-gray-400 font-medium">רווח נקי</p>
           </div>
-          <p className={`text-2xl font-bold ${balance >= 0 ? "text-green-700" : "text-red-700"}`}>{formatCurrency(balance)}</p>
+          <p className="text-2xl font-bold">{formatCurrency(balance)}</p>
           {totalIncome > 0 && (
-            <p className="text-xs mt-1" style={{ color: balance >= 0 ? "#15803d" : "#b91c1c" }}>
-              {Math.round((balance / totalIncome) * 100)}% מרווח
-            </p>
+            <p className="text-xs text-white/70 mt-1.5 font-medium">{Math.round((balance / totalIncome) * 100)}% מרווח</p>
           )}
         </div>
       </div>
@@ -332,8 +331,12 @@ export default function TransactionsPage() {
         <div className="space-y-5">
           {displayTx.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-16 text-center">
-              <p className="text-5xl mb-4">💸</p>
-              <p className="text-gray-500 font-medium">אין תנועות בתקופה הנוכחית</p>
+              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <p className="text-gray-600 font-semibold">אין תנועות בתקופה הנוכחית</p>
               <p className="text-gray-400 text-sm mt-1 mb-5">לאחר איפוס חשבון, הנתונים ההיסטוריים שמורים בארכיון</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => setShowAdd(true)}
@@ -354,36 +357,40 @@ export default function TransactionsPage() {
               {/* Monthly trend */}
               {months.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <h2 className="font-bold text-gray-900 text-sm mb-4">מגמה חודשית</h2>
-                  <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="font-bold text-gray-900">מגמה חודשית</h2>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />הכנסות</span>
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-300 inline-block" />הוצאות</span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
                     {months.map(ym => {
                       const { income, expense } = monthlyMap[ym];
                       const profit = income - expense;
+                      const incomeW = Math.round((income / maxMonthVal) * 100);
+                      const expenseW = Math.round((expense / maxMonthVal) * 100);
                       return (
                         <div key={ym}>
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                            <span className="font-medium text-gray-700">{formatMonth(ym)}</span>
-                            <span className={`font-semibold ${profit >= 0 ? "text-green-600" : "text-red-500"}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-gray-700">{formatMonth(ym)}</span>
+                            <span className={`text-sm font-bold ${profit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                               {profit >= 0 ? "+" : ""}{formatCurrency(profit)}
                             </span>
                           </div>
-                          <div className="flex gap-1 h-6">
-                            <div className="flex-1 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-400 rounded-full"
-                                style={{ width: `${Math.round((income / maxMonthVal) * 100)}%` }}
-                              />
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-400 w-12 flex-shrink-0 text-left">{formatCurrency(income).replace("₪", "").trim()}</span>
+                              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${incomeW}%` }} />
+                              </div>
                             </div>
-                            <div className="flex-1 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-red-300 rounded-full"
-                                style={{ width: `${Math.round((expense / maxMonthVal) * 100)}%` }}
-                              />
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-400 w-12 flex-shrink-0 text-left">{formatCurrency(expense).replace("₪", "").trim()}</span>
+                              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-300 rounded-full transition-all" style={{ width: `${expenseW}%` }} />
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex gap-4 text-xs text-gray-400 mt-0.5">
-                            <span>הכנסות: <span className="text-green-600 font-medium">{formatCurrency(income)}</span></span>
-                            <span>הוצאות: <span className="text-red-500 font-medium">{formatCurrency(expense)}</span></span>
                           </div>
                         </div>
                       );
