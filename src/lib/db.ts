@@ -77,14 +77,25 @@ export async function countAdmins() {
 
 // --- Work Sites ---
 export async function getAllSites() {
-  const [sitesSnap, txSnap] = await Promise.all([
+  const [sitesSnap, txSnap, tasksSnap] = await Promise.all([
     adminDb.collection("sites").orderBy("createdAt", "desc").get(),
     adminDb.collection("transactions").get(),
+    adminDb.collection("tasks").get(),
   ]);
   const transactions = snap<Transaction>(txSnap).filter(t => !t.archiveId);
+  const allTasks = snap<Task>(tasksSnap);
+  const now = new Date();
   return sitesSnap.docs.map(doc => {
     const site = docToObj<WorkSite>(doc);
     site.transactions = transactions.filter(t => t.workSiteId === site.id);
+    const siteTasks = allTasks.filter(t => t.siteId === site.id);
+    const doneTasks = siteTasks.filter(t => t.status === "DONE").length;
+    const overdueTasks = siteTasks.filter(t => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < now).length;
+    (site as WorkSite & { taskStats: { total: number; done: number; overdue: number } }).taskStats = {
+      total: siteTasks.length,
+      done: doneTasks,
+      overdue: overdueTasks,
+    };
     return site;
   });
 }

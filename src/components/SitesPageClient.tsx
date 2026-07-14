@@ -20,6 +20,7 @@ type Site = {
   lat: number | null;
   lng: number | null;
   transactions?: Array<{ type: string; amount: number }>;
+  taskStats?: { total: number; done: number; overdue: number };
 };
 
 const statusLabel: Record<string, string> = { ACTIVE: "פעיל", COMPLETED: "הושלם", ON_HOLD: "מושהה" };
@@ -150,6 +151,48 @@ export default function SitesPageClient({ sites }: { sites: Site[] }) {
                     {formatCurrency(balance)}
                   </p>
                 </div>
+
+                {/* Task progress */}
+                {site.taskStats && site.taskStats.total > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">משימות</span>
+                        {site.taskStats.overdue > 0 && (
+                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            ⚠ {site.taskStats.overdue} באיחור
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-600">
+                        {site.taskStats.done}/{site.taskStats.total}
+                        <span className="text-gray-400 font-normal mr-1">
+                          ({Math.round((site.taskStats.done / site.taskStats.total) * 100)}%)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${
+                          site.taskStats.done === site.taskStats.total
+                            ? "bg-green-500"
+                            : site.taskStats.overdue > 0
+                            ? "bg-red-400"
+                            : "bg-blue-400"
+                        }`}
+                        style={{ width: `${Math.round((site.taskStats.done / site.taskStats.total) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {site.taskStats && site.taskStats.total === 0 && (
+                  <div className="mb-3 flex items-center gap-1.5 text-xs text-gray-300">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    אין משימות
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-3 border-t border-gray-50 text-xs">
                   <div className="flex-1">
