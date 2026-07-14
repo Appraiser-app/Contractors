@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type Profile = {
 	id: string;
@@ -49,7 +50,7 @@ const adminItems = [
 	{ href: "/admin/users", label: "ניהול משתמשים", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
 ];
 
-function NavItem({ href, label, icon, active }: { href: string; label: string; icon: string; active: boolean }) {
+function NavItem({ href, label, icon, active, badge }: { href: string; label: string; icon: string; active: boolean; badge?: number }) {
 	return (
 		<Link
 			href={href}
@@ -62,7 +63,14 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
 			<span className={active ? "text-white/90" : "text-gray-400 group-hover:text-gray-500 transition-colors"}>
 				<NavIcon d={icon} />
 			</span>
-			<span className="truncate">{label}</span>
+			<span className="truncate flex-1">{label}</span>
+			{badge != null && badge > 0 && (
+				<span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+					active ? "bg-white/25 text-white" : "bg-red-500 text-white"
+				}`}>
+					{badge > 99 ? "99+" : badge}
+				</span>
+			)}
 		</Link>
 	);
 }
@@ -78,6 +86,22 @@ function SectionLabel({ label }: { label: string }) {
 export default function LeftPanel({ profile }: { profile: Profile }) {
 	const pathname = usePathname();
 	const role = (profile as { role?: string } | null)?.role;
+	const [overdueCount, setOverdueCount] = useState(0);
+
+	useEffect(() => {
+		fetch("/api/tasks/overdue")
+			.then((r) => r.json())
+			.then((d) => setOverdueCount(d.count || 0))
+			.catch(() => {});
+		// Refresh every 5 minutes
+		const interval = setInterval(() => {
+			fetch("/api/tasks/overdue")
+				.then((r) => r.json())
+				.then((d) => setOverdueCount(d.count || 0))
+				.catch(() => {});
+		}, 5 * 60 * 1000);
+		return () => clearInterval(interval);
+	}, []);
 
 	const userRoleLabel =
 		profile?.userRole === "GC"
@@ -127,8 +151,14 @@ export default function LeftPanel({ profile }: { profile: Profile }) {
 				{/* Internal */}
 				<SectionLabel label="ניהול פנימי" />
 				{internalItems.map((item) => (
-					<NavItem key={item.href} href={item.href} label={item.label} icon={item.icon}
-						active={pathname === item.href || pathname.startsWith(`${item.href}/`)} />
+					<NavItem
+						key={item.href}
+						href={item.href}
+						label={item.label}
+						icon={item.icon}
+						active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+						badge={item.href === "/tasks" ? overdueCount : undefined}
+					/>
 				))}
 
 				{role === "ADMIN" && (

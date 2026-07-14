@@ -131,6 +131,7 @@ export default function TasksPage() {
   const total = tasks.length;
   const done = tasks.filter(t => t.status === "DONE").length;
   const urgent = tasks.filter(t => t.priority === "URGENT" && t.status !== "DONE").length;
+  const overdueTasks = tasks.filter(t => t.status !== "DONE" && t.dueDate && isOverdue(t.dueDate));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -143,6 +144,11 @@ export default function TasksPage() {
             <span className="text-xs bg-green-100 text-green-700 font-medium px-2.5 py-1 rounded-full">{done} הושלמו</span>
             {urgent > 0 && (
               <span className="text-xs bg-red-100 text-red-600 font-medium px-2.5 py-1 rounded-full">{urgent} דחופות</span>
+            )}
+            {overdueTasks.length > 0 && (
+              <span className="text-xs bg-red-500 text-white font-bold px-2.5 py-1 rounded-full animate-pulse">
+                ⚠ {overdueTasks.length} באיחור
+              </span>
             )}
           </div>
         </div>
@@ -181,6 +187,40 @@ export default function TasksPage() {
           </button>
         </div>
       </div>
+
+      {/* Overdue banner */}
+      {overdueTasks.length > 0 && (
+        <div className="mb-5 bg-red-50 border border-red-200 rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-red-700 text-sm mb-2">
+                {overdueTasks.length === 1 ? "משימה אחת באיחור" : `${overdueTasks.length} משימות באיחור`}
+              </p>
+              <div className="space-y-1.5">
+                {overdueTasks.slice(0, 4).map(t => (
+                  <div key={t.id} className="flex items-center gap-2 text-xs text-red-600">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                    <span className="font-medium truncate">{t.title}</span>
+                    {t.dueDate && (
+                      <span className="text-red-400 flex-shrink-0">
+                        — היה צריך להיות עד {formatDate(t.dueDate)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {overdueTasks.length > 4 && (
+                  <p className="text-xs text-red-400 pr-3">ועוד {overdueTasks.length - 4} נוספות...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Calendar status message */}
       {calendarMsg && (
