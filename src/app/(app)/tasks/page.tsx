@@ -274,8 +274,10 @@ export default function TasksPage() {
         <div className="flex items-center justify-center py-20 text-gray-400">טוען...</div>
       ) : tasks.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-20 text-center">
-          <p className="text-5xl mb-4">✅</p>
-          <p className="text-gray-500 font-medium">אין משימות עדיין</p>
+          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <p className="text-gray-600 font-semibold">אין משימות עדיין</p>
           <p className="text-gray-400 text-sm mt-1 mb-5">הוסף את המשימה הראשונה שלך</p>
           <button
             onClick={() => setShowForm(true)}

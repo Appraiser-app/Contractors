@@ -108,28 +108,33 @@ export default async function SitePage({
 			</div>
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-8">
-				<div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-					<p className="text-gray-400 text-xs mb-1">הכנסות כולל מע״מ</p>
-					<p className="text-xl sm:text-2xl font-bold text-green-600">
-						{formatCurrency(income)}
-					</p>
-					<p className="text-xs text-gray-400 mt-0.5">
-						מע״מ: {formatCurrency(incomeNet * VAT)}
-					</p>
+				<div className="bg-green-50 rounded-2xl p-4 sm:p-5">
+					<div className="flex items-center justify-between mb-2">
+						<p className="text-green-700/60 text-xs font-semibold">הכנסות כולל מע״מ</p>
+						<div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+							<svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+						</div>
+					</div>
+					<p className="text-xl sm:text-2xl font-bold text-green-700">{formatCurrency(income)}</p>
+					<p className="text-xs text-green-600/60 mt-1">מע״מ: {formatCurrency(incomeNet * VAT)}</p>
 				</div>
-				<div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-					<p className="text-gray-400 text-xs mb-1">הוצאות</p>
-					<p className="text-xl sm:text-2xl font-bold text-red-600">
-						{formatCurrency(expense)}
-					</p>
+				<div className="bg-red-50 rounded-2xl p-4 sm:p-5">
+					<div className="flex items-center justify-between mb-2">
+						<p className="text-red-700/60 text-xs font-semibold">הוצאות</p>
+						<div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
+							<svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+						</div>
+					</div>
+					<p className="text-xl sm:text-2xl font-bold text-red-600">{formatCurrency(expense)}</p>
 				</div>
-				<div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-					<p className="text-gray-400 text-xs mb-1">יתרה</p>
-					<p
-						className={`text-xl sm:text-2xl font-bold ${balance >= 0 ? "text-green-700" : "text-red-700"}`}
-					>
-						{formatCurrency(balance)}
-					</p>
+				<div className={`rounded-2xl p-4 sm:p-5 ${balance >= 0 ? "bg-emerald-600" : "bg-red-600"}`}>
+					<div className="flex items-center justify-between mb-2">
+						<p className="text-white/60 text-xs font-semibold">יתרה</p>
+						<div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+							<svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+						</div>
+					</div>
+					<p className="text-xl sm:text-2xl font-bold text-white">{formatCurrency(balance)}</p>
 				</div>
 			</div>
 

@@ -188,7 +188,7 @@ export default function LoginPage() {
             <>
               <div className="text-center">
                 <p className="text-white font-semibold mb-1">איפוס סיסמה</p>
-                <p className="text-stone-400 text-sm">נשלח לך קישור לאיפוס הסיסמה</p>
+                <p className="text-gray-500 text-sm">נשלח לך קישור לאיפוס הסיסמה</p>
               </div>
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>

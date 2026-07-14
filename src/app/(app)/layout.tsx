@@ -20,7 +20,7 @@ export default async function AppLayout({
 	const profile = fsProfile ? { ...fsProfile, ...dbProfile } : null;
 
 	return (
-		<div className="min-h-screen bg-[#F0F2F5]" dir="rtl">
+		<div className="min-h-screen bg-gray-50" dir="rtl">
 			<TopNav profile={profile} />
 			<div className="flex pt-14 pb-16 lg:pb-0">
 				<LeftPanel profile={profile} />
