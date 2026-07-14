@@ -43,7 +43,7 @@ export default function SitesPageClient({ sites }: { sites: Site[] }) {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-start justify-between mb-6 sm:mb-8 gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">אתרי עבודה</h1>
+          <h1 className="text-2xl font-bold text-gray-900">אתרי עבודה</h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2.5 py-1 rounded-full">{activeSites.length} פעילים</span>
             <span className="text-xs bg-gray-100 text-gray-500 font-medium px-2.5 py-1 rounded-full">{completedSites.length} הושלמו</span>
@@ -52,10 +52,10 @@ export default function SitesPageClient({ sites }: { sites: Site[] }) {
         </div>
         <div className="flex items-center gap-2">
           {sites.length > 0 && (
-            <div className="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium">
+            <div className="flex bg-gray-100 rounded-xl p-1 text-xs font-semibold">
               <button
                 onClick={() => setView("list")}
-                className={`px-3 py-2 flex items-center gap-1.5 transition-colors ${view === "list" ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                className={`px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${view === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -64,14 +64,14 @@ export default function SitesPageClient({ sites }: { sites: Site[] }) {
               </button>
               <button
                 onClick={() => setView("map")}
-                className={`px-3 py-2 flex items-center gap-1.5 border-r border-gray-200 transition-colors ${view === "map" ? "bg-green-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                className={`px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${view === "map" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 מפה
                 {mappableSites.length > 0 && (
-                  <span className={`text-xs px-1 rounded-full ${view === "map" ? "bg-white/20" : "bg-green-100 text-green-700"}`}>
+                  <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${view === "map" ? "bg-gray-100 text-gray-600" : "bg-emerald-100 text-emerald-700"}`}>
                     {mappableSites.length}
                   </span>
                 )}
