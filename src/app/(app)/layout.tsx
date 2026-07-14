@@ -14,7 +14,7 @@ export default async function AppLayout({
 		prisma.profile.findUnique({
 			where: { id: user.id },
 			select: { avatarUrl: true, trade: true, userRole: true },
-		}),
+		}).catch(() => null),
 	]);
 
 	const profile = fsProfile ? { ...fsProfile, ...dbProfile } : null;
