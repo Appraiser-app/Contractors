@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 type Task = {
   id: string;
@@ -320,6 +319,21 @@ function TaskFormModal({
   );
 }
 
+// ---- Toast ----
+function Toast({ message, type, onClose }: { message: string; type: "error" | "success"; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3500);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-in slide-in-from-bottom-4 ${type === "error" ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}>
+      <span>{type === "error" ? "⚠" : "✓"}</span>
+      <span>{message}</span>
+      <button onClick={onClose} className="opacity-70 hover:opacity-100 mr-1">✕</button>
+    </div>
+  );
+}
+
 // ---- Main Component ----
 export default function SiteTasksClient({
   tasks: initialTasks,
@@ -330,13 +344,17 @@ export default function SiteTasksClient({
   siteId: string;
   isAdmin: boolean;
 }) {
-  const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
   const [members, setMembers] = useState<Member[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [saving, setSaving] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<Task["status"]>("TODO");
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
+
+  function showToast(message: string, type: "error" | "success" = "error") {
+    setToast({ message, type });
+  }
 
   useEffect(() => {
     fetch("/api/users")
@@ -373,75 +391,101 @@ export default function SiteTasksClient({
   async function handleSubmit(form: typeof EMPTY_FORM) {
     if (!form.title.trim()) return;
     setSaving(true);
-    try {
-      if (editingTask) {
-        const res = await fetch(`/api/tasks/${editingTask.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: form.title.trim(),
-            description: form.description.trim() || null,
-            priority: form.priority,
-            status: form.status,
-            dueDate: form.dueDate || null,
-            assignedTo: form.assignedTo || null,
-          }),
-        });
-        if (res.ok) {
-          setTasks((prev) => prev.map((t) => t.id === editingTask.id
-            ? { ...t, title: form.title.trim(), description: form.description.trim() || null, priority: form.priority, status: form.status, dueDate: form.dueDate || null, assignedTo: form.assignedTo || null }
-            : t));
+
+    if (editingTask) {
+      // --- Optimistic edit ---
+      const prev = tasks;
+      const updated = { ...editingTask, title: form.title.trim(), description: form.description.trim() || null, priority: form.priority, status: form.status, dueDate: form.dueDate || null, assignedTo: form.assignedTo || null };
+      setTasks((t) => t.map((x) => x.id === editingTask.id ? updated : x));
+      closeModal();
+      setSaving(false);
+
+      const res = await fetch(`/api/tasks/${editingTask.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: updated.title, description: updated.description, priority: updated.priority, status: updated.status, dueDate: updated.dueDate, assignedTo: updated.assignedTo }),
+      });
+      if (!res.ok) {
+        setTasks(prev);
+        showToast("שגיאה בשמירת המשימה — השינויים בוטלו");
+      }
+    } else {
+      // --- Optimistic add ---
+      const tempId = `temp-${Date.now()}`;
+      const optimisticTask: Task = {
+        id: tempId,
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        priority: form.priority,
+        status: form.status,
+        dueDate: form.dueDate || null,
+        assignedTo: form.assignedTo || null,
+        siteId,
+        createdAt: new Date().toISOString(),
+      };
+      setTasks((prev) => [...prev, optimisticTask]);
+      closeModal();
+      setSaving(false);
+
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: optimisticTask.title,
+          description: optimisticTask.description,
+          priority: optimisticTask.priority,
+          dueDate: optimisticTask.dueDate,
+          assignedTo: optimisticTask.assignedTo,
+          siteId,
+          status: form.status,
+        }),
+      });
+
+      if (res.ok) {
+        const newTask = await res.json();
+        // Replace temp entry with real one (with correct id from server)
+        setTasks((prev) => prev.map((t) => t.id === tempId ? { ...newTask, status: form.status } : t));
+        // If status != TODO, patch it (API defaults to TODO)
+        if (form.status !== "TODO") {
+          fetch(`/api/tasks/${newTask.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: form.status }),
+          }).catch(() => {});
         }
       } else {
-        const res = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: form.title.trim(),
-            description: form.description.trim() || null,
-            priority: form.priority,
-            dueDate: form.dueDate || null,
-            assignedTo: form.assignedTo || null,
-            siteId,
-            status: form.status,
-          }),
-        });
-        if (res.ok) {
-          const newTask = await res.json();
-          // Ensure status is applied (API defaults to TODO but we want the selected status)
-          if (form.status !== "TODO") {
-            await fetch(`/api/tasks/${newTask.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: form.status }),
-            });
-            newTask.status = form.status;
-          }
-          setTasks((prev) => [...prev, newTask]);
-        }
+        setTasks((prev) => prev.filter((t) => t.id !== tempId));
+        showToast("שגיאה בהוספת המשימה — נסה שוב");
       }
-      closeModal();
-      router.refresh();
-    } finally {
-      setSaving(false);
     }
   }
 
   async function handleMove(taskId: string, newStatus: Task["status"]) {
-    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
-    await fetch(`/api/tasks/${taskId}`, {
+    // Optimistic — update immediately
+    const prev = tasks;
+    setTasks((t) => t.map((x) => x.id === taskId ? { ...x, status: newStatus } : x));
+
+    const res = await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
-    router.refresh();
+    if (!res.ok) {
+      setTasks(prev); // rollback
+      showToast("שגיאה בהעברת המשימה — נסה שוב");
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("למחוק את המשימה?")) return;
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    router.refresh();
+    const prev = tasks;
+    setTasks((t) => t.filter((x) => x.id !== id));
+
+    const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setTasks(prev); // rollback
+      showToast("שגיאה במחיקת המשימה — נסה שוב");
+    }
   }
 
   const modalInitial = editingTask
@@ -457,6 +501,7 @@ export default function SiteTasksClient({
 
   return (
     <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <TaskFormModal
         open={showModal}
         onClose={closeModal}

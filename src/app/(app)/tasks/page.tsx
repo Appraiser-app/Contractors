@@ -47,6 +47,12 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
+
+  function showToastMsg(message: string, type: "error" | "success" = "error") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }
   const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
   const [calendarMsg, setCalendarMsg] = useState("");
   const [addingToCalendar, setAddingToCalendar] = useState<string | null>(null);
@@ -78,29 +84,64 @@ export default function TasksPage() {
     e.preventDefault();
     if (!form.title.trim()) return;
     setSubmitting(true);
-    await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, dueDate: form.dueDate || null }),
-    });
+
+    // Optimistic add — task appears immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimisticTask: Task = {
+      id: tempId,
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      priority: form.priority as Task["priority"],
+      status: "TODO" as Task["status"],
+      dueDate: form.dueDate || null,
+      assignedTo: null,
+      siteId: null,
+      createdBy: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setTasks(prev => [...prev, optimisticTask]);
     setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
     setShowForm(false);
     setSubmitting(false);
-    load();
+
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: optimisticTask.title, description: optimisticTask.description, priority: optimisticTask.priority, dueDate: optimisticTask.dueDate }),
+    });
+
+    if (res.ok) {
+      const newTask = await res.json();
+      setTasks(prev => prev.map(t => t.id === tempId ? newTask : t));
+    } else {
+      setTasks(prev => prev.filter(t => t.id !== tempId));
+      showToastMsg("שגיאה בהוספת המשימה — נסה שוב");
+    }
   }
 
   async function moveTask(id: string, status: Task["status"]) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
-    await fetch(`/api/tasks/${id}`, {
+    const prev = tasks;
+    setTasks(p => p.map(t => t.id === id ? { ...t, status } : t));
+    const res = await fetch(`/api/tasks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    if (!res.ok) {
+      setTasks(prev);
+      showToastMsg("שגיאה בהעברת המשימה — נסה שוב");
+    }
   }
 
   async function deleteTask(id: string) {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    const prev = tasks;
+    setTasks(p => p.filter(t => t.id !== id));
+    const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setTasks(prev);
+      showToastMsg("שגיאה במחיקת המשימה — נסה שוב");
+    }
   }
 
   async function addToCalendar(task: Task) {
@@ -135,6 +176,14 @@ export default function TasksPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${toast.type === "error" ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}>
+          <span>{toast.type === "error" ? "⚠" : "✓"}</span>
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="opacity-70 hover:opacity-100 mr-1">✕</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6">
         <div>
