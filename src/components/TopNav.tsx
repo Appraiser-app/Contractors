@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import GlobalSearch from "./GlobalSearch";
 
 type Profile = {
 	id: string;
@@ -344,6 +345,9 @@ export default function TopNav({ profile }: { profile: Profile }) {
 
 					{/* Right side */}
 					<div className="flex items-center gap-1.5 mr-auto">
+						{/* Global Search */}
+						<GlobalSearch />
+
 						{/* Management button */}
 						<button
 							type="button"
