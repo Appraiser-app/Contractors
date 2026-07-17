@@ -1,10 +1,11 @@
-import { requireAuth } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import { createPhase, getPhasesBySite } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
 	try {
-		await requireAuth();
+		const user = await getApiUser();
+		if (!user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 		const { searchParams } = new URL(request.url);
 		const siteId = searchParams.get("siteId");
 		if (!siteId)
@@ -12,14 +13,16 @@ export async function GET(request: Request) {
 
 		const phases = await getPhasesBySite(siteId);
 		return NextResponse.json(phases);
-	} catch {
+	} catch (e) {
+		console.error("GET /api/project/phases failed:", e);
 		return NextResponse.json({ error: "שגיאה" }, { status: 500 });
 	}
 }
 
 export async function POST(request: Request) {
 	try {
-		await requireAuth();
+		const user = await getApiUser();
+		if (!user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 		const body = await request.json();
 		const { siteId, name, startDate, endDate, color, progress, notes, order } =
 			body;
@@ -39,7 +42,8 @@ export async function POST(request: Request) {
 			order: order ?? 0,
 		});
 		return NextResponse.json(phase, { status: 201 });
-	} catch {
+	} catch (e) {
+		console.error("POST /api/project/phases failed:", e);
 		return NextResponse.json({ error: "שגיאה ביצירה" }, { status: 500 });
 	}
 }

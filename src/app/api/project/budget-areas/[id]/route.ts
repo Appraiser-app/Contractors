@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import { deleteBudgetArea, updateBudgetArea } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -7,7 +7,8 @@ export async function PATCH(
 	{ params }: { params: Promise<{ id: string }> },
 ) {
 	try {
-		await requireAuth();
+		const user = await getApiUser();
+		if (!user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 		const { id } = await params;
 		const body = await request.json();
 		const { name, budgetAmount, notes, color } = body;
@@ -20,7 +21,8 @@ export async function PATCH(
 
 		const area = await updateBudgetArea(id, updates);
 		return NextResponse.json(area);
-	} catch {
+	} catch (e) {
+		console.error("PATCH /api/project/budget-areas/[id] failed:", e);
 		return NextResponse.json({ error: "שגיאה בעדכון" }, { status: 500 });
 	}
 }
@@ -30,11 +32,13 @@ export async function DELETE(
 	{ params }: { params: Promise<{ id: string }> },
 ) {
 	try {
-		await requireAuth();
+		const user = await getApiUser();
+		if (!user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 		const { id } = await params;
 		await deleteBudgetArea(id);
 		return NextResponse.json({ ok: true });
-	} catch {
+	} catch (e) {
+		console.error("DELETE /api/project/budget-areas/[id] failed:", e);
 		return NextResponse.json({ error: "שגיאה במחיקה" }, { status: 500 });
 	}
 }
