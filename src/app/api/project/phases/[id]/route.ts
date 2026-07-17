@@ -1,39 +1,45 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { deletePhase, updatePhase } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    await requireAuth();
-    const { id } = await params;
-    const body = await request.json();
-    const { name, startDate, endDate, color, progress, notes, order } = body;
+export async function PATCH(
+	request: Request,
+	{ params }: { params: Promise<{ id: string }> },
+) {
+	try {
+		await requireAuth();
+		const { id } = await params;
+		const body = await request.json();
+		const { name, startDate, endDate, color, progress, notes, order } = body;
 
-    const phase = await prisma.projectPhase.update({
-      where: { id },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && { endDate: new Date(endDate) }),
-        ...(color !== undefined && { color }),
-        ...(progress !== undefined && { progress }),
-        ...(notes !== undefined && { notes }),
-        ...(order !== undefined && { order }),
-      },
-    });
-    return NextResponse.json(phase);
-  } catch {
-    return NextResponse.json({ error: "שגיאה בעדכון" }, { status: 500 });
-  }
+		const updates: Record<string, unknown> = {};
+		if (name !== undefined) updates.name = name.trim();
+		if (startDate !== undefined)
+			updates.startDate = new Date(startDate).toISOString();
+		if (endDate !== undefined)
+			updates.endDate = new Date(endDate).toISOString();
+		if (color !== undefined) updates.color = color;
+		if (progress !== undefined) updates.progress = progress;
+		if (notes !== undefined) updates.notes = notes;
+		if (order !== undefined) updates.order = order;
+
+		const phase = await updatePhase(id, updates);
+		return NextResponse.json(phase);
+	} catch {
+		return NextResponse.json({ error: "שגיאה בעדכון" }, { status: 500 });
+	}
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    await requireAuth();
-    const { id } = await params;
-    await prisma.projectPhase.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "שגיאה במחיקה" }, { status: 500 });
-  }
+export async function DELETE(
+	_request: Request,
+	{ params }: { params: Promise<{ id: string }> },
+) {
+	try {
+		await requireAuth();
+		const { id } = await params;
+		await deletePhase(id);
+		return NextResponse.json({ ok: true });
+	} catch {
+		return NextResponse.json({ error: "שגיאה במחיקה" }, { status: 500 });
+	}
 }

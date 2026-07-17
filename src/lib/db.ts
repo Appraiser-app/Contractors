@@ -419,6 +419,57 @@ export async function deleteTask(id: string) {
   await adminDb.collection("tasks").doc(id).delete();
 }
 
+// --- Project Phases ---
+export async function getPhasesBySite(siteId: string) {
+  const snapshot = await adminDb.collection("projectPhases").where("siteId", "==", siteId).get();
+  return snap<ProjectPhase>(snapshot).sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return (a.startDate || "").localeCompare(b.startDate || "");
+  });
+}
+
+export async function createPhase(phase: Partial<ProjectPhase>) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...phase, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("projectPhases").doc(id).set(data);
+  return data as ProjectPhase;
+}
+
+export async function updatePhase(id: string, updates: Partial<ProjectPhase>) {
+  await adminDb.collection("projectPhases").doc(id).update({ ...updates, updatedAt: new Date().toISOString() });
+  const doc = await adminDb.collection("projectPhases").doc(id).get();
+  return docToObj<ProjectPhase>(doc);
+}
+
+export async function deletePhase(id: string) {
+  await adminDb.collection("projectPhases").doc(id).delete();
+}
+
+// --- Project Budget Areas ---
+export async function getBudgetAreasBySite(siteId: string) {
+  const snapshot = await adminDb.collection("projectBudgetAreas").where("siteId", "==", siteId).get();
+  return snap<ProjectBudgetArea>(snapshot).sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+}
+
+export async function createBudgetArea(area: Partial<ProjectBudgetArea>) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const data = { ...area, id, createdAt: now, updatedAt: now };
+  await adminDb.collection("projectBudgetAreas").doc(id).set(data);
+  return data as ProjectBudgetArea;
+}
+
+export async function updateBudgetArea(id: string, updates: Partial<ProjectBudgetArea>) {
+  await adminDb.collection("projectBudgetAreas").doc(id).update({ ...updates, updatedAt: new Date().toISOString() });
+  const doc = await adminDb.collection("projectBudgetAreas").doc(id).get();
+  return docToObj<ProjectBudgetArea>(doc);
+}
+
+export async function deleteBudgetArea(id: string) {
+  await adminDb.collection("projectBudgetAreas").doc(id).delete();
+}
+
 // --- Notifications ---
 export async function getNotificationsForUser(userId: string) {
   const snapshot = await adminDb.collection("notifications").where("userId", "==", userId).get();
@@ -598,6 +649,19 @@ export type Task = {
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   dueDate: string | null; assignedTo: string | null;
   siteId: string | null; createdBy: string | null;
+  createdAt: string; updatedAt: string;
+};
+
+export type ProjectPhase = {
+  id: string; siteId: string | null; name: string;
+  startDate: string; endDate: string;
+  color: string | null; progress: number; notes: string | null; order: number;
+  createdAt: string; updatedAt: string;
+};
+
+export type ProjectBudgetArea = {
+  id: string; siteId: string | null; name: string;
+  budgetAmount: number; notes: string | null; color: string | null;
   createdAt: string; updatedAt: string;
 };
 
