@@ -10,7 +10,14 @@ function getAdminApp(): App {
   const existing = getApps().find((a) => a.name === "admin");
   if (existing) return existing;
 
-  const privateKey = (process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n")) || FALLBACK_PRIVATE_KEY;
+  const envPrivateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  // Only trust the env key if it's a complete PEM block. A truncated/malformed
+  // value (e.g. only the "BEGIN" header) would otherwise crash the whole app,
+  // so we fall back to the embedded service-account key.
+  const privateKey =
+    envPrivateKey?.includes("BEGIN PRIVATE KEY") && envPrivateKey.includes("END PRIVATE KEY")
+      ? envPrivateKey
+      : FALLBACK_PRIVATE_KEY;
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "contractors-d5c0d";
   const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "contractors-d5c0d.firebasestorage.app";
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL || FALLBACK_CLIENT_EMAIL;
