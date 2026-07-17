@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { deleteServiceSchedule } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();

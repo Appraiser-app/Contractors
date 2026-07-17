@@ -1,5 +1,5 @@
-import { requireAuth, getProfile } from "@/lib/auth";
-import { getAllExpenses, getAllExpenseArchives } from "@/lib/db";
+import { getProfile, requireAuth } from "@/lib/auth";
+import { getAllExpenseArchives, getAllExpenses } from "@/lib/db";
 import ExpensesClient from "./ExpensesClient";
 
 export default async function ExpensesPage() {

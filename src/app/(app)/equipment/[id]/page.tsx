@@ -1,9 +1,9 @@
-import { requireAuth, getProfile } from "@/lib/auth";
-import { getEquipmentById } from "@/lib/db";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import EquipmentTabs from "@/components/EquipmentTabs";
 import DeleteEquipmentButton from "@/components/DeleteEquipmentButton";
+import EquipmentTabs from "@/components/EquipmentTabs";
+import { getProfile, requireAuth } from "@/lib/auth";
+import { getEquipmentById } from "@/lib/db";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 const typeLabel: Record<string, string> = {
   TRUCK: "משאית", MINI_EXCAVATOR: "מיני מחפרון", BOBCAT: "בובקט", OTHER: "אחר",

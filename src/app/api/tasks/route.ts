@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { getAllTasks, createTask } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { createTask, getAllTasks } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {

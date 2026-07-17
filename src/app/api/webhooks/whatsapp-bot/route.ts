@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
 import { createExpense } from "@/lib/db";
 import type { ExpenseEntity } from "@/lib/db";
+import { adminDb } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export const maxDuration = 30;
 
@@ -29,7 +29,7 @@ function parseExpense(text: string): { amount: number; description: string; cate
   const paidPattern = /שילמתי\s+(\d+(?:\.\d+)?)\s+(?:על\s+)?(.+)/;
   const paidMatch = clean.match(paidPattern);
   if (paidMatch) {
-    const amount = parseFloat(paidMatch[1]);
+    const amount = Number.parseFloat(paidMatch[1]);
     const desc = paidMatch[2].trim();
     return { amount, description: desc, category: detectCategory(desc) };
   }
@@ -38,7 +38,7 @@ function parseExpense(text: string): { amount: number; description: string; cate
   const expPattern = /הוצאה[:\s]+(\d+(?:\.\d+)?)\s*[-–]?\s*(.+)/;
   const expMatch = clean.match(expPattern);
   if (expMatch) {
-    const amount = parseFloat(expMatch[1]);
+    const amount = Number.parseFloat(expMatch[1]);
     const desc = expMatch[2].trim();
     return { amount, description: desc, category: detectCategory(desc) };
   }
@@ -46,7 +46,7 @@ function parseExpense(text: string): { amount: number; description: string; cate
   // Pattern: number at start "500 דלק" or "500.5 קפה"
   const startNum = clean.match(/^(\d+(?:\.\d+)?)\s+(.{2,})/);
   if (startNum) {
-    const amount = parseFloat(startNum[1]);
+    const amount = Number.parseFloat(startNum[1]);
     const desc = startNum[2].trim();
     if (amount > 0 && amount < 1000000) {
       return { amount, description: desc, category: detectCategory(desc) };
@@ -56,7 +56,7 @@ function parseExpense(text: string): { amount: number; description: string; cate
   // Pattern: number at end "דלק 500" or "אוכל עובדים 300"
   const endNum = clean.match(/^(.{2,})\s+(\d+(?:\.\d+)?)$/);
   if (endNum) {
-    const amount = parseFloat(endNum[2]);
+    const amount = Number.parseFloat(endNum[2]);
     const desc = endNum[1].trim();
     if (amount > 0 && amount < 1000000) {
       return { amount, description: desc, category: detectCategory(desc) };

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { WhatsAppMessage, WorkSite } from "@/lib/db";
 import WhatsAppBot from "@/components/WhatsAppBot";
+import type { WhatsAppMessage, WorkSite } from "@/lib/db";
+import { useEffect, useState } from "react";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();

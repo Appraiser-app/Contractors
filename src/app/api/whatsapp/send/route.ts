@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { requireAuth, getUser } from "@/lib/auth";
+import { getUser, requireAuth } from "@/lib/auth";
 import { saveWhatsAppMessage } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {

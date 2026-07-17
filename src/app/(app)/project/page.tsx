@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Site = {
   id: string;
@@ -207,7 +207,7 @@ function GanttChart({
                     style={{
                       right: `${leftPct}%`,
                       width: `${widthPct}%`,
-                      backgroundColor: color + "33",
+                      backgroundColor: `${color}33`,
                       border: `2px solid ${color}`,
                     }}
                     onClick={() => onEdit(phase)}
@@ -216,7 +216,7 @@ function GanttChart({
                     {/* Progress fill */}
                     <div
                       className="absolute top-0 bottom-0 right-0 rounded-md transition-all"
-                      style={{ width: `${phase.progress}%`, backgroundColor: color + "88" }}
+                      style={{ width: `${phase.progress}%`, backgroundColor: `${color}88` }}
                     />
                     {/* Label inside bar */}
                     <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold z-10" style={{ color }}>
@@ -400,7 +400,7 @@ export default function ProjectPage() {
   async function submitArea(e: React.FormEvent) {
     e.preventDefault();
     if (!areaForm.name.trim()) return;
-    const body = { siteId: selectedSiteId, name: areaForm.name, budgetAmount: parseFloat(areaForm.budgetAmount) || 0, notes: areaForm.notes, color: areaForm.color };
+    const body = { siteId: selectedSiteId, name: areaForm.name, budgetAmount: Number.parseFloat(areaForm.budgetAmount) || 0, notes: areaForm.notes, color: areaForm.color };
     if (editingArea) {
       await fetch(`/api/project/budget-areas/${editingArea.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } else {
@@ -434,7 +434,7 @@ export default function ProjectPage() {
       startDate: phaseForm.startDate,
       endDate: phaseForm.endDate,
       color: phaseForm.color,
-      progress: parseInt(phaseForm.progress) || 0,
+      progress: Number.parseInt(phaseForm.progress) || 0,
       notes: phaseForm.notes,
       order: editingPhase ? editingPhase.order : phases.length,
     };

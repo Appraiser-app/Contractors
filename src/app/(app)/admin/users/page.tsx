@@ -1,6 +1,6 @@
+import UserManagement from "@/components/UserManagement";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProfiles } from "@/lib/db";
-import UserManagement from "@/components/UserManagement";
 
 export default async function UsersPage() {
   const currentUser = await requireAdmin();

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { getUser, getProfile } from "@/lib/auth";
+import { getProfile, getUser } from "@/lib/auth";
 import { deleteInvitation } from "@/lib/db";
 import { adminAuth } from "@/lib/firebase-admin";
 import { adminDb } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();

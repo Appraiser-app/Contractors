@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import {
-  getAllSites,
-  getAllTransactions,
   getAllEquipment,
-  getAllTasks,
   getAllExpenses,
+  getAllSites,
+  getAllTasks,
+  getAllTransactions,
 } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 const currency = (n: number) =>
   new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n);
@@ -20,7 +20,7 @@ const EQUIPMENT_TYPE_LABEL: Record<string, string> = {
 
 // Case-insensitive substring match against any of the given fields.
 function matches(q: string, fields: (string | null | undefined)[]) {
-  return fields.some((f) => f != null && f.toLowerCase().includes(q));
+  return fields.some((f) => f?.toLowerCase().includes(q));
 }
 
 export async function GET(request: Request) {

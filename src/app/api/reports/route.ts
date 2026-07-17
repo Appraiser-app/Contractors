@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getAllTransactions, getAllEquipment, getAllSites, getAllExpenses } from "@/lib/db";
+import { getAllEquipment, getAllExpenses, getAllSites, getAllTransactions } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 const VAT = 0.18;
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     ]);
 
     const fromDate = from ? new Date(from) : null;
-    const toDate = to ? new Date(to + "T23:59:59") : null;
+    const toDate = to ? new Date(`${to}T23:59:59`) : null;
 
     function inRange(dateStr: string) {
       const d = new Date(dateStr);
@@ -92,7 +92,7 @@ export async function GET(req: Request) {
         const totalExpense = v.expense + v.generalExpense;
         return {
           month,
-          label: new Date(month + "-01").toLocaleDateString("he-IL", { month: "long", year: "numeric" }),
+          label: new Date(`${month}-01`).toLocaleDateString("he-IL", { month: "long", year: "numeric" }),
           incomeNet: v.incomeNet,
           vatAmount: v.incomeNet * VAT,
           incomeGross,
@@ -128,8 +128,8 @@ export async function GET(req: Request) {
     for (const e of allEquipExpenses) {
       equipCategoryBreakdown[e.category] = (equipCategoryBreakdown[e.category] || 0) + e.amount;
     }
-    equipCategoryBreakdown["טיפול"] = (equipCategoryBreakdown["טיפול"] || 0) + maintenanceTotal;
-    equipCategoryBreakdown["ביטוח"] = (equipCategoryBreakdown["ביטוח"] || 0) + insuranceTotal;
+    equipCategoryBreakdown.טיפול = (equipCategoryBreakdown.טיפול || 0) + maintenanceTotal;
+    equipCategoryBreakdown.ביטוח = (equipCategoryBreakdown.ביטוח || 0) + insuranceTotal;
 
     // --- Daily timeline ---
     const dailyMap: Record<string, { income: number; expense: number; equip: number }> = {};

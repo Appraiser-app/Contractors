@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { getAllExpenseArchives } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const user = await getUser();

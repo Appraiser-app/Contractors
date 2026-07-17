@@ -1,5 +1,5 @@
-import { requireAuth, getProfile } from "@/lib/auth";
-import { getAllSubscriptions, getAllMaintenanceAppointments, getAllEquipment } from "@/lib/db";
+import { getProfile, requireAuth } from "@/lib/auth";
+import { getAllEquipment, getAllMaintenanceAppointments, getAllSubscriptions } from "@/lib/db";
 import SubscriptionsClient from "./SubscriptionsClient";
 
 export default async function SubscriptionsPage() {

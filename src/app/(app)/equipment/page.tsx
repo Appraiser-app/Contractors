@@ -1,4 +1,4 @@
-import { requireAuth, getProfile } from "@/lib/auth";
+import { getProfile, requireAuth } from "@/lib/auth";
 import { getAllEquipment } from "@/lib/db";
 import Link from "next/link";
 

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAllWhatsAppMessages } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {

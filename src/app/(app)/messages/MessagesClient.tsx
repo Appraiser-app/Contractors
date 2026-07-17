@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type OtherUser = { id: string; name: string; avatarUrl?: string | null; trade?: string | null; userRole: string } | null;
 type Conversation = { id: string; participant1: string; participant2: string; lastMessageAt: string; other: OtherUser; lastMessage: { content: string; senderId: string } | null };

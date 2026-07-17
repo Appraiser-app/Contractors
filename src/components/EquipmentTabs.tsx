@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import type { Document, Equipment, EquipmentExpense, FuelLog, Insurance, MaintenanceRecord, ServiceSchedule } from "@/lib/db";
 import { uploadReceipt } from "@/lib/upload";
-import type { Equipment, MaintenanceRecord, Insurance, EquipmentExpense, Document, FuelLog, ServiceSchedule } from "@/lib/db";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type WorkSite = { id: string; name: string; location?: string | null };
 
@@ -39,7 +39,7 @@ function MaintenanceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin:
     await fetch("/api/maintenance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, description: form.description, cost: form.cost ? parseFloat(form.cost) : null, date: form.date, mileage: form.mileage ? parseInt(form.mileage) : null, notes: form.notes || null }),
+      body: JSON.stringify({ equipmentId: equipment.id, description: form.description, cost: form.cost ? Number.parseFloat(form.cost) : null, date: form.date, mileage: form.mileage ? Number.parseInt(form.mileage) : null, notes: form.notes || null }),
     });
     setForm({ description: "", cost: "", date: new Date().toISOString().slice(0, 10), mileage: "", notes: "" });
     setShowForm(false);
@@ -236,7 +236,7 @@ function InsuranceTab({ equipment, isAdmin }: { equipment: Equipment; isAdmin: b
     await fetch("/api/insurance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, type: form.type, company: form.company || null, policyNumber: form.policyNumber || null, startDate: form.startDate, endDate: form.endDate, cost: parseFloat(form.cost) || 0, isPaid: form.isPaid }),
+      body: JSON.stringify({ equipmentId: equipment.id, type: form.type, company: form.company || null, policyNumber: form.policyNumber || null, startDate: form.startDate, endDate: form.endDate, cost: Number.parseFloat(form.cost) || 0, isPaid: form.isPaid }),
     });
     setForm({ type: "", company: "", policyNumber: "", startDate: new Date().toISOString().slice(0, 10), endDate: "", cost: "", isPaid: false });
     setShowForm(false);
@@ -414,13 +414,13 @@ function FuelTab({ equipment, isAdmin, sites }: { equipment: Equipment; isAdmin:
 
   // Auto-calculate totalCost when liters or pricePerLiter changes
   function handleLitersChange(val: string) {
-    const l = parseFloat(val) || 0;
-    const p = parseFloat(form.pricePerLiter) || 0;
+    const l = Number.parseFloat(val) || 0;
+    const p = Number.parseFloat(form.pricePerLiter) || 0;
     setForm(prev => ({ ...prev, liters: val, totalCost: l && p ? (l * p).toFixed(2) : prev.totalCost }));
   }
   function handlePriceChange(val: string) {
-    const p = parseFloat(val) || 0;
-    const l = parseFloat(form.liters) || 0;
+    const p = Number.parseFloat(val) || 0;
+    const l = Number.parseFloat(form.liters) || 0;
     setForm(prev => ({ ...prev, pricePerLiter: val, totalCost: l && p ? (l * p).toFixed(2) : prev.totalCost }));
   }
 
@@ -430,7 +430,7 @@ function FuelTab({ equipment, isAdmin, sites }: { equipment: Equipment; isAdmin:
     await fetch("/api/fuel-logs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, date: form.date, liters: parseFloat(form.liters), pricePerLiter: parseFloat(form.pricePerLiter), totalCost: parseFloat(form.totalCost), workSiteId: form.workSiteId || null, mileage: form.mileage || null, notes: form.notes || null }),
+      body: JSON.stringify({ equipmentId: equipment.id, date: form.date, liters: Number.parseFloat(form.liters), pricePerLiter: Number.parseFloat(form.pricePerLiter), totalCost: Number.parseFloat(form.totalCost), workSiteId: form.workSiteId || null, mileage: form.mileage || null, notes: form.notes || null }),
     });
     setForm({ date: new Date().toISOString().slice(0, 10), liters: "", pricePerLiter: "", totalCost: "", workSiteId: "", mileage: "", notes: "" });
     setShowForm(false);
@@ -610,7 +610,7 @@ function ExpensesTab({ equipment, isAdmin, sites }: { equipment: Equipment; isAd
     await fetch("/api/equipment-expense", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipmentId: equipment.id, category: form.category, amount: parseFloat(form.amount), description: form.description, date: form.date, receiptUrl, workSiteId: form.workSiteId || null }),
+      body: JSON.stringify({ equipmentId: equipment.id, category: form.category, amount: Number.parseFloat(form.amount), description: form.description, date: form.date, receiptUrl, workSiteId: form.workSiteId || null }),
     });
     setForm({ category: "", amount: "", description: "", date: new Date().toISOString().slice(0, 10), workSiteId: "" });
     setReceiptFile(null);

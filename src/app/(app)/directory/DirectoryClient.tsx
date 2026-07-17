@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 const TRADES = ["All", "Electrical", "Plumbing", "HVAC", "Roofing", "Framing", "Concrete", "Excavation", "Painting", "Drywall", "Flooring", "Landscaping"];
 

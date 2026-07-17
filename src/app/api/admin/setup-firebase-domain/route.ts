@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
 import { requireAdmin } from "@/lib/auth";
+import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function POST() {
   try {
     await requireAdmin();
     // Get access token from Firebase Admin
-    const app = (adminAuth as any).app;
+    const app = (adminAuth as unknown as { app: { options: { credential: { getAccessToken: () => Promise<{ access_token: string }> } } } }).app;
     const credential = app.options.credential;
     const tokenResult = await credential.getAccessToken();
     const accessToken = tokenResult.access_token;
@@ -47,7 +47,8 @@ export async function POST() {
       success: true,
       domains: result.authorizedDomains,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

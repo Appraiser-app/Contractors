@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { createEquipment, logActivity, getProfileById } from "@/lib/db";
+import { createEquipment, getProfileById, logActivity } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {

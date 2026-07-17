@@ -1,6 +1,6 @@
 import { getProfile, getUser } from "@/lib/auth";
-import { adminDb } from "@/lib/firebase-admin";
 import { deleteTransaction, getTransactionById } from "@/lib/db";
+import { adminDb } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
 export async function PATCH(
@@ -32,7 +32,7 @@ export async function PATCH(
 		if (!isAdmin) {
 			return NextResponse.json({ error: "רק אדמין יכול לערוך תנועות" }, { status: 403 });
 		}
-		if (amount !== undefined) updates.amount = parseFloat(amount);
+		if (amount !== undefined) updates.amount = Number.parseFloat(amount);
 		if (description !== undefined) updates.description = description;
 		if (category !== undefined) updates.category = category || null;
 		if (date !== undefined) updates.date = date;

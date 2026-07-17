@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { updateTask, deleteTask } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { deleteTask, updateTask } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

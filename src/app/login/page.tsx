@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, signInWithRedirect, signInWithPopup, getRedirectResult, GoogleAuthProvider, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { GoogleAuthProvider, getRedirectResult, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -193,7 +193,7 @@ export default function LoginPage() {
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1.5">אימייל</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required 
                     className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                     placeholder="name@example.com" dir="ltr" />
                 </div>

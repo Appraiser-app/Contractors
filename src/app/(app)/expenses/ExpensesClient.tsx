@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
 import { uploadReceipt } from "@/lib/upload";
+import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 
 type ExpenseEntity = "דור" | "שגיא" | "חברה של שגיא" | "חברה של דור";
@@ -205,7 +205,7 @@ export default function ExpensesClient({
   }
 
   // VAT calculation (only meaningful when vatIncluded=false)
-  const numericAmount = parseFloat(form.amount) || 0;
+  const numericAmount = Number.parseFloat(form.amount) || 0;
   const vatAmount = Math.round(numericAmount * VAT_RATE);
   const totalWithVat = numericAmount + vatAmount;
 

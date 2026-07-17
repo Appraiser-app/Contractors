@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { getUser, getProfile } from "@/lib/auth";
-import { createInvitation, getInvitations, createProfile } from "@/lib/db";
+import { getProfile, getUser } from "@/lib/auth";
+import { createInvitation, createProfile, getInvitations } from "@/lib/db";
 import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const user = await getUser();
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
   try {
     // Create Firebase Auth user with a temp random password
-    const tempPassword = crypto.randomUUID().replace(/-/g, "").slice(0, 16) + "Aa1!";
+    const tempPassword = `${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}Aa1!`;
     const firebaseUser = await adminAuth.createUser({
       email,
       password: tempPassword,

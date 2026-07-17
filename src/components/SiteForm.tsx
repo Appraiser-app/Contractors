@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type Site = {
   id: string;
@@ -47,14 +47,14 @@ export default function SiteForm({ site }: { site?: Site }) {
     if (!form.location.trim()) return;
     setGeocoding(true);
     try {
-      const query = encodeURIComponent(form.location + ", ישראל");
+      const query = encodeURIComponent(`${form.location}, ישראל`);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=il`,
         { headers: { "Accept-Language": "he" } }
       );
       const data = await res.json();
       if (data.length > 0) {
-        setCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+        setCoords({ lat: Number.parseFloat(data[0].lat), lng: Number.parseFloat(data[0].lon) });
       } else {
         setError("לא נמצא מיקום — נסה כתובת מדויקת יותר");
       }
@@ -66,7 +66,7 @@ export default function SiteForm({ site }: { site?: Site }) {
   }
 
   const VAT = 0.18;
-  const enteredValue = parseFloat(form.contractValue) || 0;
+  const enteredValue = Number.parseFloat(form.contractValue) || 0;
   const contractNet = vatIncluded ? enteredValue / (1 + VAT) : enteredValue;
   const contractGross = contractNet * (1 + VAT);
 

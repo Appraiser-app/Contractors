@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { getRecentActivities, getUserActivities } from "@/lib/db";
 import { getProfile } from "@/lib/auth";
+import { getRecentActivities, getUserActivities } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   const profile = await getProfile();
@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
-  const limit = parseInt(searchParams.get("limit") || "100");
+  const limit = Number.parseInt(searchParams.get("limit") || "100");
 
   const activities = userId
     ? await getUserActivities(userId, limit)

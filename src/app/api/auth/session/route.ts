@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { getProfileById, logActivity } from "@/lib/db";
 import { adminAuth } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";
-import { getProfileById, logActivity } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 const SESSION_DURATION = 60 * 60 * 24 * 14 * 1000; // 14 days
 

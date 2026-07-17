@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import EditTransactionModal from "./EditTransactionModal";
 import DeleteTransactionButton from "./DeleteTransactionButton";
+import EditTransactionModal from "./EditTransactionModal";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 
 type Transaction = {

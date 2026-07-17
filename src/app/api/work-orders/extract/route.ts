@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { getUser } from "@/lib/auth";
+import Anthropic from "@anthropic-ai/sdk";
+import { NextResponse } from "next/server";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const base64 = Buffer.from(bytes).toString("base64");
   const mediaType = (file.type || "application/pdf") as "application/pdf";
 
-  let message;
+  let message: Anthropic.Message;
   try {
     message = await client.messages.create({
       model: "claude-sonnet-4-6",

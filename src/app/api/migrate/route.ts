@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { adminDb } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 // One-time migration: backfill new fields added throughout development
 // GET /api/migrate — runs all migrations, returns summary
@@ -12,7 +12,8 @@ export async function GET() {
     // ── 1. Transactions: backfill archiveId: null ─────────────────────────
     {
       const snap = await adminDb.collection("transactions").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => d.data().archiveId === undefined);
       for (let i = 0; i < docs.length; i += batchSize) {
@@ -30,7 +31,8 @@ export async function GET() {
     // ── 2. Expenses: backfill archiveId: null ────────────────────────────
     {
       const snap = await adminDb.collection("expenses").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => d.data().archiveId === undefined);
       for (let i = 0; i < docs.length; i += batchSize) {
@@ -48,7 +50,8 @@ export async function GET() {
     // ── 3. Equipment: backfill currentMileage + nextServiceMileage ────────
     {
       const snap = await adminDb.collection("equipment").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => {
         const data = d.data();
@@ -76,7 +79,8 @@ export async function GET() {
     // ── 4. Subscriptions: backfill startDate: null ────────────────────────
     {
       const snap = await adminDb.collection("subscriptions").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => d.data().startDate === undefined);
       for (let i = 0; i < docs.length; i += batchSize) {
@@ -94,7 +98,8 @@ export async function GET() {
     // ── 5. Insurance: normalize cost (null where missing) ─────────────────
     {
       const snap = await adminDb.collection("insurances").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => d.data().cost === undefined);
       for (let i = 0; i < docs.length; i += batchSize) {
@@ -112,7 +117,8 @@ export async function GET() {
     // ── 6. Sites: backfill lat/lng ────────────────────────────────────────
     {
       const snap = await adminDb.collection("sites").get();
-      let updated = 0, skipped = 0;
+      let updated = 0;
+      let skipped = 0;
       const batchSize = 400;
       const docs = snap.docs.filter(d => {
         const data = d.data();

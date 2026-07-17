@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { countAdmins, createProfile } from "@/lib/db";
 import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 // One-time setup route to create the first admin users (Sagi and Dor)
 export async function POST(req: Request) {

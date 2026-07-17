@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { adminDb } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({
       configured: true,
       instanceId: data.instanceId,
-      apiToken: data.apiToken ? "***" + data.apiToken.slice(-4) : "",
+      apiToken: data.apiToken ? `***${data.apiToken.slice(-4)}` : "",
       groupId: data.groupId,
       defaultEntity: data.defaultEntity,
       requireKeyword: data.requireKeyword,
@@ -35,18 +35,18 @@ export async function POST(req: Request) {
 
     const now = new Date().toISOString();
     const existing = await adminDb.collection("settings").doc("whatsappBot").get();
-    const currentToken = existing.exists ? existing.data()!.apiToken : null;
+    const currentToken = existing.exists ? existing.data()?.apiToken : null;
 
     await adminDb.collection("settings").doc("whatsappBot").set({
       instanceId: instanceId.trim(),
-      apiToken: apiToken === "***" + (currentToken || "").slice(-4) ? currentToken : apiToken.trim(),
+      apiToken: apiToken === `***${(currentToken || "").slice(-4)}` ? currentToken : apiToken.trim(),
       groupId: groupId?.trim() || "",
       defaultEntity: defaultEntity || "חברה של דור",
       requireKeyword: requireKeyword || false,
       keyword: keyword?.trim() || "הוצאה",
       enabled: enabled !== false,
       updatedAt: now,
-      createdAt: existing.exists ? existing.data()!.createdAt : now,
+      createdAt: existing.exists ? existing.data()?.createdAt : now,
     });
 
     return NextResponse.json({ ok: true });

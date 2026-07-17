@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
-import { updateEquipment, deleteEquipment } from "@/lib/db";
+import { deleteEquipment, updateEquipment } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {

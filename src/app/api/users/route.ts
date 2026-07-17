@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { getProfile, getUser } from "@/lib/auth";
 import { createProfile } from "@/lib/db";
-import { getUser, getProfile } from "@/lib/auth";
 import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const user = await getUser();

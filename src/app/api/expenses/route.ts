@@ -1,6 +1,6 @@
+import { getProfile, getUser } from "@/lib/auth";
+import { createExpense, getAllExpenses, logActivity } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getAllExpenses, createExpense, logActivity } from "@/lib/db";
-import { getUser, getProfile } from "@/lib/auth";
 
 export async function GET() {
   const user = await getUser();
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   const [expense, profile] = await Promise.all([
-    createExpense({ entity, amount: parseFloat(amount), description, category: category || null, paymentMethod: paymentMethod || null, vatIncluded: vatIncluded ?? null, expenseType: expenseType || null, invoiceUrl: invoiceUrl || null, invoiceFileName: invoiceFileName || null, date, receiptUrl: receiptUrl || null, receiptFileName: receiptFileName || null, notes: notes || null, createdById: user.id, archiveId: null }),
+    createExpense({ entity, amount: Number.parseFloat(amount), description, category: category || null, paymentMethod: paymentMethod || null, vatIncluded: vatIncluded ?? null, expenseType: expenseType || null, invoiceUrl: invoiceUrl || null, invoiceFileName: invoiceFileName || null, date, receiptUrl: receiptUrl || null, receiptFileName: receiptFileName || null, notes: notes || null, createdById: user.id, archiveId: null }),
     getProfile(),
   ]);
 

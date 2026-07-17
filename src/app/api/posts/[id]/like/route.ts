@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
@@ -13,9 +13,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await prisma.postLike.delete({ where: { postId_userId: { postId, userId: user.id } } });
     await prisma.post.update({ where: { id: postId }, data: { likesCount: { decrement: 1 } } });
     return NextResponse.json({ liked: false });
-  } else {
+  }
     await prisma.postLike.create({ data: { postId, userId: user.id } });
     await prisma.post.update({ where: { id: postId }, data: { likesCount: { increment: 1 } } });
     return NextResponse.json({ liked: true });
-  }
 }

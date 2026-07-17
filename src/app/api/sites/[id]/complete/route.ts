@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { updateSite } from "@/lib/db";
 import { getUser } from "@/lib/auth";
+import { updateSite } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
@@ -14,13 +14,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (action === "collect") {
       const site = await updateSite(id, { collectedAt: new Date().toISOString() });
       return NextResponse.json(site);
-    } else {
+    }
       const site = await updateSite(id, {
         status: "COMPLETED",
         completedAt: new Date().toISOString(),
       });
       return NextResponse.json(site);
-    }
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

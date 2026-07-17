@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 type Bidder = { id: string; name: string; avatarUrl?: string | null; trade?: string | null; rating: number; ratingCount: number; isVerified: boolean } | null;
 type Bid = { id: string; bidderId: string; price: number; availability?: string | null; notes?: string | null; status: string; createdAt: string; bidder: Bidder };

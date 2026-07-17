@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const categories = {
   INCOME: ["תשלום לקוח", "מקדמה", "סיום שלב", "אחר"],
@@ -48,7 +48,7 @@ export default function EditTransactionModal({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: form.type,
-        amount: parseFloat(form.amount),
+        amount: Number.parseFloat(form.amount),
         description: form.description,
         category: form.category || null,
         date: form.date,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { uploadReceipt } from "@/lib/upload";
 import type { Equipment } from "@/lib/db";
+import { uploadReceipt } from "@/lib/upload";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 export default function EquipmentForm({ equipment }: { equipment?: Equipment }) {
   const router = useRouter();
@@ -54,16 +54,16 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
 
     const body = {
       ...form,
-      year: form.year ? parseInt(form.year) : null,
+      year: form.year ? Number.parseInt(form.year) : null,
       licensePlate: form.licensePlate || null,
       description: form.description || null,
       registeredOwner: form.registeredOwner || null,
       registeredAt: form.registeredAt || null,
-      currentMileage: form.currentMileage ? parseInt(form.currentMileage) : null,
-      nextServiceMileage: form.nextServiceMileage ? parseInt(form.nextServiceMileage) : null,
+      currentMileage: form.currentMileage ? Number.parseInt(form.currentMileage) : null,
+      nextServiceMileage: form.nextServiceMileage ? Number.parseInt(form.nextServiceMileage) : null,
       testLastDate: form.testLastDate || null,
       testDate: form.testDate || null,
-      testCost: form.testCost ? parseFloat(form.testCost) : null,
+      testCost: form.testCost ? Number.parseFloat(form.testCost) : null,
     };
 
     const res = await fetch(equipment ? `/api/equipment/${equipment.id}` : "/api/equipment", {
@@ -116,7 +116,7 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
           policyNumber: insurance.policyNumber || null,
           startDate: insurance.startDate,
           endDate: insurance.endDate,
-          cost: insurance.cost ? parseFloat(insurance.cost) : null,
+          cost: insurance.cost ? Number.parseFloat(insurance.cost) : null,
           isPaid: insurance.isPaid,
         }),
       });
@@ -217,9 +217,9 @@ export default function EquipmentForm({ equipment }: { equipment?: Equipment }) 
                   placeholder="130000" min="0" dir="ltr" />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">ק״מ</span>
               </div>
-              {form.currentMileage && form.nextServiceMileage && parseInt(form.nextServiceMileage) > parseInt(form.currentMileage) && (
+              {form.currentMileage && form.nextServiceMileage && Number.parseInt(form.nextServiceMileage) > Number.parseInt(form.currentMileage) && (
                 <p className="text-xs text-gray-400 mt-1">
-                  עוד {(parseInt(form.nextServiceMileage) - parseInt(form.currentMileage)).toLocaleString("he-IL")} ק״מ לטיפול
+                  עוד {(Number.parseInt(form.nextServiceMileage) - Number.parseInt(form.currentMileage)).toLocaleString("he-IL")} ק״מ לטיפול
                 </p>
               )}
             </div>

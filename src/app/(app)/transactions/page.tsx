@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import { uploadReceipt } from "@/lib/upload";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(amount);
@@ -127,7 +127,7 @@ export default function TransactionsPage() {
     const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...addForm, amount: parseFloat(addForm.amount), receiptUrl }),
+      body: JSON.stringify({ ...addForm, amount: Number.parseFloat(addForm.amount), receiptUrl }),
     });
     setAddLoading(false);
     if (res.ok) {
@@ -495,13 +495,13 @@ export default function TransactionsPage() {
                   </div>
                   {canApprove && (
                     <div className="flex gap-2 mt-3">
-                      <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === t.id + "approve"}
+                      <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === `${t.id}approve`}
                         className="flex-1 text-xs bg-green-600 hover:bg-green-500 text-white font-semibold py-2 rounded-xl transition-colors disabled:opacity-50">
-                        {actionLoading === t.id + "approve" ? "..." : "✓ אשר"}
+                        {actionLoading === `${t.id}approve` ? "..." : "✓ אשר"}
                       </button>
-                      <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === t.id + "reject"}
+                      <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === `${t.id}reject`}
                         className="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-2 rounded-xl transition-colors disabled:opacity-50">
-                        {actionLoading === t.id + "reject" ? "..." : "✕ דחה"}
+                        {actionLoading === `${t.id}reject` ? "..." : "✕ דחה"}
                       </button>
                     </div>
                   )}
@@ -530,7 +530,7 @@ export default function TransactionsPage() {
                     <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">אתר</th>
                     <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סטטוס</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">סכום</th>
-                    <th className="px-4 py-3.5"></th>
+                    <th className="px-4 py-3.5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -571,13 +571,13 @@ export default function TransactionsPage() {
                         <td className="px-4 py-4">
                           {canApprove && (
                             <div className="flex items-center gap-1.5">
-                              <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === t.id + "approve"}
+                              <button onClick={() => handleApproval(t.id, "approve")} disabled={actionLoading === `${t.id}approve`}
                                 className="text-xs bg-green-600 hover:bg-green-500 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                                {actionLoading === t.id + "approve" ? "..." : "אשר"}
+                                {actionLoading === `${t.id}approve` ? "..." : "אשר"}
                               </button>
-                              <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === t.id + "reject"}
+                              <button onClick={() => handleApproval(t.id, "reject")} disabled={actionLoading === `${t.id}reject`}
                                 className="text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                                {actionLoading === t.id + "reject" ? "..." : "דחה"}
+                                {actionLoading === `${t.id}reject` ? "..." : "דחה"}
                               </button>
                             </div>
                           )}

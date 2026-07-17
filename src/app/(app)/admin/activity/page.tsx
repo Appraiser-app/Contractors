@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { requireAdmin } from "@/lib/auth";
-import { getRecentActivities, getAllProfiles } from "@/lib/db";
+import { getAllProfiles, getRecentActivities } from "@/lib/db";
 import ActivityClient from "./ActivityClient";
 
 export default async function ActivityPage() {

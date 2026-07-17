@@ -1,5 +1,5 @@
-import { requireAuth, getProfile } from "@/lib/auth";
-import { getAllSites, getAllTransactions, getAllEquipment, getAllExpenses } from "@/lib/db";
+import { getProfile, requireAuth } from "@/lib/auth";
+import { getAllEquipment, getAllExpenses, getAllSites, getAllTransactions } from "@/lib/db";
 import Link from "next/link";
 
 function formatCurrency(amount: number) {

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { getAllMaintenanceAppointments, createMaintenanceAppointment } from "@/lib/db";
+import { createMaintenanceAppointment, getAllMaintenanceAppointments } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const user = await getUser();
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "שדות חובה חסרים" }, { status: 400 });
   const appt = await createMaintenanceAppointment({
     equipmentId, equipmentName, description, scheduledDate,
-    estimatedCost: estimatedCost ? parseFloat(estimatedCost) : null,
+    estimatedCost: estimatedCost ? Number.parseFloat(estimatedCost) : null,
     notes: notes || null, status: "PENDING",
   });
   return NextResponse.json(appt, { status: 201 });

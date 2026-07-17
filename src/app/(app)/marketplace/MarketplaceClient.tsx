@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const TRADES = ["All", "Electrical", "Plumbing", "HVAC", "Roofing", "Framing", "Concrete", "Excavation", "Painting", "Drywall", "Flooring", "Landscaping"];
 
@@ -106,7 +106,7 @@ function PostProjectModal({ onClose, onCreated, profile }: {
     setSubmitting(true);
     const res = await fetch("/api/public-projects", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, budget: form.budget ? parseFloat(form.budget) : null }),
+      body: JSON.stringify({ ...form, budget: form.budget ? Number.parseFloat(form.budget) : null }),
     });
     setSubmitting(false);
     if (res.ok) { onCreated(); onClose(); }
@@ -172,7 +172,7 @@ function BidModal({ projectId, onClose, onDone }: { projectId: string; onClose: 
     setSubmitting(true);
     const res = await fetch(`/api/public-projects/${projectId}/bids`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ price: parseFloat(form.price), availability: form.availability || null, notes: form.notes || null }),
+      body: JSON.stringify({ price: Number.parseFloat(form.price), availability: form.availability || null, notes: form.notes || null }),
     });
     setSubmitting(false);
     if (res.ok) { onDone(); onClose(); }

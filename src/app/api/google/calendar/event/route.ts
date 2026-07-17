@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { getProfileById } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 async function getAccessToken(refreshToken: string): Promise<string> {
   const res = await fetch("https://oauth2.googleapis.com/token", {

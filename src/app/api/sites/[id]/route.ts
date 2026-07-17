@@ -1,6 +1,6 @@
+import { getProfile, getUser } from "@/lib/auth";
+import { deleteSite, getSiteById, logActivity, updateSite } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { updateSite, deleteSite, getSiteById, logActivity } from "@/lib/db";
-import { getUser, getProfile } from "@/lib/auth";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();

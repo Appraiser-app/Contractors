@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 // Fix default marker icons broken by webpack
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
+(L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl = undefined;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -101,7 +101,7 @@ export default function SitesMap({ sites }: { sites: SitePin[] }) {
                   <div
                     className="text-xs font-medium inline-block px-2 py-0.5 rounded-full mb-2"
                     style={{
-                      background: STATUS_COLORS[site.status] + "22",
+                      background: `${STATUS_COLORS[site.status]}22`,
                       color: STATUS_COLORS[site.status],
                     }}
                   >

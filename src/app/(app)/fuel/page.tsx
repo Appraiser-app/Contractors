@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { requireAuth } from "@/lib/auth";
-import { getAllFuelLogs, getAllEquipment, getAllSites } from "@/lib/db";
+import { getAllEquipment, getAllFuelLogs, getAllSites } from "@/lib/db";
 import FuelClient from "./FuelClient";
 
 export default async function FuelPage() {

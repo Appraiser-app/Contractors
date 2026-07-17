@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import type { Task } from "@/lib/db";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 const PRIORITY_LABEL: Record<string, string> = { LOW: "נמוכה", MEDIUM: "בינונית", HIGH: "גבוהה", URGENT: "דחוף" };
 const PRIORITY_COLOR: Record<string, string> = {
@@ -294,7 +294,6 @@ export default function TasksPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
                 <input
-                  autoFocus
                   type="text"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}

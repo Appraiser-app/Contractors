@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
-import { updateProfileRole, getAllProfiles } from "@/lib/db";
+import { getAllProfiles, updateProfileRole } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 const SETUP_SECRET = "contractors-setup-2024";
 

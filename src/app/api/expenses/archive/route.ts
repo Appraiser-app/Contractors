@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { archiveCurrentExpenses } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();

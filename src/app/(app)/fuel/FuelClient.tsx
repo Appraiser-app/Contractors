@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 type FuelLog = {
   id: string;
@@ -94,7 +94,7 @@ export default function FuelClient({ initialLogs, equipment, sites }: {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(-6)
       .map(([m, v]) => ({
-        label: new Date(m + "-01").toLocaleDateString("he-IL", { month: "short", year: "2-digit" }),
+        label: new Date(`${m}-01`).toLocaleDateString("he-IL", { month: "short", year: "2-digit" }),
         ...v,
       }));
   }, [logs]);
@@ -154,7 +154,7 @@ export default function FuelClient({ initialLogs, equipment, sites }: {
     });
   }, [logs, filterEquip, filterSite]);
 
-  const totalCostCalc = parseFloat(form.liters || "0") * parseFloat(form.pricePerLiter || "0");
+  const totalCostCalc = Number.parseFloat(form.liters || "0") * Number.parseFloat(form.pricePerLiter || "0");
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -163,7 +163,7 @@ export default function FuelClient({ initialLogs, equipment, sites }: {
     const res = await fetch("/api/fuel-logs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, liters: parseFloat(form.liters), pricePerLiter: parseFloat(form.pricePerLiter), totalCost: totalCostCalc, workSiteId: form.workSiteId || null, mileage: form.mileage || null }),
+      body: JSON.stringify({ ...form, liters: Number.parseFloat(form.liters), pricePerLiter: Number.parseFloat(form.pricePerLiter), totalCost: totalCostCalc, workSiteId: form.workSiteId || null, mileage: form.mileage || null }),
     });
     if (res.ok) {
       const newLog = await res.json();
@@ -410,7 +410,7 @@ export default function FuelClient({ initialLogs, equipment, sites }: {
             equipBreakdown.map(e => {
               const pct = totalCost > 0 ? (e.cost / totalCost) * 100 : 0;
               const eqLogs = logs.filter(l => l.equipmentId === e.equipId);
-              const sites = [...new Set(eqLogs.filter(l => l.workSite).map(l => l.workSite!.name))];
+              const sites = [...new Set(eqLogs.filter(l => l.workSite).map(l => l.workSite?.name))];
               return (
                 <div key={e.equipId} className="bg-white rounded-xl border border-slate-200 p-4">
                   <div className="flex items-start justify-between mb-3">

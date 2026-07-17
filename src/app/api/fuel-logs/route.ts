@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createFuelLog } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -16,11 +16,11 @@ export async function POST(req: NextRequest) {
     const log = await createFuelLog({
       equipmentId,
       date,
-      liters: parseFloat(liters),
-      pricePerLiter: parseFloat(pricePerLiter),
-      totalCost: parseFloat(totalCost),
+      liters: Number.parseFloat(liters),
+      pricePerLiter: Number.parseFloat(pricePerLiter),
+      totalCost: Number.parseFloat(totalCost),
       workSiteId: workSiteId || null,
-      mileage: mileage ? parseInt(mileage) : null,
+      mileage: mileage ? Number.parseInt(mileage) : null,
       notes: notes || null,
     });
     return NextResponse.json(log, { status: 201 });

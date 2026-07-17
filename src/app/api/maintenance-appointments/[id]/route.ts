@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { updateMaintenanceAppointment, deleteMaintenanceAppointment } from "@/lib/db";
+import { deleteMaintenanceAppointment, updateMaintenanceAppointment } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();

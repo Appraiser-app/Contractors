@@ -1,6 +1,6 @@
-import { requireAuth, getProfile } from "@/lib/auth";
-import { getAllSites } from "@/lib/db";
 import CollectButton from "@/components/CollectButton";
+import { getProfile, requireAuth } from "@/lib/auth";
+import { getAllSites } from "@/lib/db";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(amount);

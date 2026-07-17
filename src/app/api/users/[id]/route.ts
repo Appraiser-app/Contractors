@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { updateProfileRole, updateProfileActive, updateProfilePermissions, deleteProfile, getProfileById, UserRole, UserPermissions } from "@/lib/db";
-import { getUser, getProfile } from "@/lib/auth";
+import { getProfile, getUser } from "@/lib/auth";
+import { type UserPermissions, type UserRole, deleteProfile, getProfileById, updateProfileActive, updateProfilePermissions, updateProfileRole } from "@/lib/db";
 import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();

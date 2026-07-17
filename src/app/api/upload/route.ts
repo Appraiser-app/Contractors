@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { adminStorage } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export const maxDuration = 30;
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
     if (!ALLOWED_EXTENSIONS.includes(ext) || !ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: `סוג קובץ לא מורשה. מותר: תמונות, PDF, Excel, Word` }, { status: 415 });
+      return NextResponse.json({ error: "סוג קובץ לא מורשה. מותר: תמונות, PDF, Excel, Word" }, { status: 415 });
     }
     const filename = `receipts/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 

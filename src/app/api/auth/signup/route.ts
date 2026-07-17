@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
 import { createProfile, getProfileById } from "@/lib/db";
+import { adminAuth } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {

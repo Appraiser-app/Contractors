@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { getAllSubscriptions, createSubscription } from "@/lib/db";
+import { createSubscription, getAllSubscriptions } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const user = await getUser();
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "שדות חובה חסרים" }, { status: 400 });
   const sub = await createSubscription({
     name, type, provider: provider || null,
-    amount: parseFloat(amount), billingCycle,
+    amount: Number.parseFloat(amount), billingCycle,
     startDate: startDate || null, nextRenewal,
     notes: notes || null, isActive: true,
     equipmentId: equipmentId || null, equipmentName: equipmentName || null,

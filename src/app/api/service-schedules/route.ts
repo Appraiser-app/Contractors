@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createServiceSchedule } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const user = await getUser();
@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
   const schedule = await createServiceSchedule({
     equipmentId,
     name,
-    intervalHours: intervalHours ? parseInt(intervalHours) : null,
-    intervalKm: intervalKm ? parseInt(intervalKm) : null,
+    intervalHours: intervalHours ? Number.parseInt(intervalHours) : null,
+    intervalKm: intervalKm ? Number.parseInt(intervalKm) : null,
     notes: notes || null,
   });
   return NextResponse.json(schedule, { status: 201 });

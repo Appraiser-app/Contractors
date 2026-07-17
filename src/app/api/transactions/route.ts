@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { createTransaction, getAllProfiles, getProfileById, createNotification, getAllTransactions, logActivity } from "@/lib/db";
 import { getUser } from "@/lib/auth";
+import { createNotification, createTransaction, getAllProfiles, getAllTransactions, getProfileById, logActivity } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const user = await getUser();
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       id: crypto.randomUUID(),
       workSiteId: siteId,
       type,
-      amount: parseFloat(amount),
+      amount: Number.parseFloat(amount),
       description,
       category: category || null,
       date: date || new Date().toISOString(),
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     ]);
     const creatorName = creator?.name || "משתמש";
     const typeLabel = type === "INCOME" ? "הכנסה" : "הוצאה";
-    const formattedAmount = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(parseFloat(amount));
+    const formattedAmount = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(Number.parseFloat(amount));
 
     await Promise.all(
       allProfiles

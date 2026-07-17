@@ -1,7 +1,7 @@
+import { getProfileById } from "@/lib/db";
+import { adminAuth } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { adminAuth } from "@/lib/firebase-admin";
-import { getProfileById } from "@/lib/db";
 
 export async function getUser() {
   try {

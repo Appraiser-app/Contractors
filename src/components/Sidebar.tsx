@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Profile = {
   id: string;
@@ -368,7 +368,7 @@ function NavContent({ profile, pathname, onClose, handleLogout }: {
           <p className="text-stone-600 text-[10px] uppercase tracking-widest font-semibold">BuildersBooks</p>
         </div>
         {socialItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
@@ -391,7 +391,7 @@ function NavContent({ profile, pathname, onClose, handleLogout }: {
           <p className="text-stone-600 text-[10px] uppercase tracking-widest font-semibold">ניהול פנימי</p>
         </div>
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}

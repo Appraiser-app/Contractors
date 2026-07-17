@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { uploadReceipt } from "@/lib/upload";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 const categories = {
   INCOME: ["תשלום לקוח", "מקדמה", "סיום שלב", "אחר"],
@@ -28,7 +28,7 @@ export default function AddTransactionForm({ siteId }: { siteId: string }) {
   });
 
   const VAT = 0.18;
-  const enteredAmount = parseFloat(form.amount) || 0;
+  const enteredAmount = Number.parseFloat(form.amount) || 0;
   const amountNet = (form.type === "INCOME" && vatIncluded) ? enteredAmount / (1 + VAT) : enteredAmount;
   const amountGross = amountNet * (1 + VAT);
 

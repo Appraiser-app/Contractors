@@ -1,4 +1,4 @@
-import { requireAuth, getProfile } from "@/lib/auth";
+import { getProfile, requireAuth } from "@/lib/auth";
 import { getSuperAdmin } from "@/lib/db";
 import { prisma } from "@/lib/prisma";
 import ProfileClient from "./ProfileClient";

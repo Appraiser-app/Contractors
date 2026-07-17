@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type Task = {
   id: string;
@@ -222,7 +222,6 @@ function TaskFormModal({
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">כותרת המשימה *</label>
             <input
-              autoFocus
               type="text"
               placeholder="מה צריך לעשות?"
               value={form.title}

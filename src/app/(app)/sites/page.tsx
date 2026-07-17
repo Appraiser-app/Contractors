@@ -1,6 +1,6 @@
+import SitesPageClient from "@/components/SitesPageClient";
 import { requireAuth } from "@/lib/auth";
 import { getAllSites } from "@/lib/db";
-import SitesPageClient from "@/components/SitesPageClient";
 
 export default async function SitesPage() {
   await requireAuth();

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { getSuperAdmin, setSuperAdmin } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function POST() {
   const profile = await getProfile();

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState } from "react";
 
 const SitesMap = dynamic(() => import("./SitesMap"), { ssr: false, loading: () => (
   <div className="rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center" style={{ height: 520 }}>
