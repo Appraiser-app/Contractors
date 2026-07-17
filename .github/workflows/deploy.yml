@@ -6,6 +6,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_OtjTXeSkTErHEPWZ4b3OdsAm
+      VERCEL_PROJECT_ID: prj_81z3SUUq033TQ9eelteYckRYEx9c
     steps:
       - uses: actions/checkout@v4
       - name: Install Vercel CLI

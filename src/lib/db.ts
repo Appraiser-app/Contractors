@@ -155,6 +155,13 @@ export async function getTransactionsByArchive(archiveId: string) {
   return snap<Transaction>(txSnap).map(t => ({ ...t, workSite: siteMap[t.workSiteId] }));
 }
 
+export async function getTransactionsBySite(siteId: string) {
+  const snapshot = await adminDb.collection("transactions").where("workSiteId", "==", siteId).get();
+  return snap<Transaction>(snapshot)
+    .filter(t => !t.archiveId)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+}
+
 export async function createTransaction(txData: Partial<Transaction> & { workSiteId: string }) {
   const id = txData.id || crypto.randomUUID();
   const now = new Date().toISOString();
